@@ -49,6 +49,12 @@ import type {
   RegistryWithOrg,
   Repo,
   RepoCaches,
+  BuildCacheBucket,
+  BuildCacheBucketInput,
+  BuildCacheCleanupResult,
+  BuildCacheOrgDetail,
+  AdminCaches,
+  OrgCaches,
   RepoPermissions,
   RepoResponse,
   RepoSettings,
@@ -444,6 +450,45 @@ export default class CrowClient extends ApiClient {
 
   async deleteRepoCaches(repoId: number): Promise<unknown> {
     return this._delete(`/api/v1/repos/${repoId}/caches`);
+  }
+
+  async getOrgCaches(orgId: number): Promise<OrgCaches> {
+    return this._get(`/api/v1/orgs/${orgId}/caches`) as Promise<OrgCaches>;
+  }
+
+  async deleteOrgCaches(orgId: number): Promise<BuildCacheCleanupResult> {
+    return this._delete(`/api/v1/orgs/${orgId}/caches`) as Promise<BuildCacheCleanupResult>;
+  }
+
+  async putOrgCacheBucket(orgId: number, bucket: BuildCacheBucketInput): Promise<BuildCacheBucket> {
+    return this._put(`/api/v1/orgs/${orgId}/caches/bucket`, bucket) as Promise<BuildCacheBucket>;
+  }
+
+  async deleteOrgCacheBucket(orgId: number): Promise<unknown> {
+    return this._delete(`/api/v1/orgs/${orgId}/caches/bucket`);
+  }
+
+  async getAdminCaches(): Promise<AdminCaches> {
+    return this._get('/api/v1/admin/caches') as Promise<AdminCaches>;
+  }
+
+  async getAdminCacheOrg(orgId: number): Promise<BuildCacheOrgDetail> {
+    return this._get(`/api/v1/admin/caches/orgs/${orgId}`) as Promise<BuildCacheOrgDetail>;
+  }
+
+  async putAdminCacheOrg(
+    orgId: number,
+    settings: { max_size: number; max_egress: number; ttl: number },
+  ): Promise<BuildCacheOrgDetail> {
+    return this._put(`/api/v1/admin/caches/orgs/${orgId}`, settings) as Promise<BuildCacheOrgDetail>;
+  }
+
+  async deleteAdminCacheOrg(orgId: number): Promise<BuildCacheCleanupResult> {
+    return this._delete(`/api/v1/admin/caches/orgs/${orgId}`) as Promise<BuildCacheCleanupResult>;
+  }
+
+  async runAdminCacheCleanup(): Promise<BuildCacheCleanupResult> {
+    return this._post('/api/v1/admin/caches/cleanup') as Promise<BuildCacheCleanupResult>;
   }
 
   async getOrgRegistryList(orgId: number, opts?: PaginationOptions): Promise<Registry[] | null> {

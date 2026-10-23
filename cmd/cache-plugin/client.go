@@ -46,6 +46,7 @@ var (
 	errExists   = errors.New("already cached")
 	errReadOnly = errors.New("this pipeline may only restore caches (pull request from a fork)")
 	errQuota    = errors.New("cache quota exceeded")
+	errEgress   = errors.New("the monthly cache download limit is reached")
 )
 
 // client talks to the server's build cache API with the workflow's cache token.
@@ -130,6 +131,8 @@ func (c *client) callOnce(ctx context.Context, endpoint string, payload []byte, 
 		return errReadOnly
 	case http.StatusInsufficientStorage:
 		return errQuota
+	case http.StatusTooManyRequests:
+		return errEgress
 	default:
 		return responseError(resp)
 	}
@@ -151,6 +154,16 @@ func (c *client) restore(ctx context.Context, key string, restoreKeys []string) 
 	out := new(restoreResponse)
 	err := c.call(ctx, "/restore", map[string]any{"key": key, "restore_keys": restoreKeys}, out)
 	return out, err
+}
+
+// exists reports whether key is cached. Unlike a restore, the server neither
+// counts it as a hit or miss nor holds it against the download limit.
+func (c *client) exists(ctx context.Context, key string) (bool, error) {
+	err := c.call(ctx, "/restore", map[string]any{"key": key, "check": true}, new(restoreResponse))
+	if errors.Is(err, errMiss) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 func (c *client) reserve(ctx context.Context, key string, size int64) (*reserveResponse, error) {

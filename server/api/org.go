@@ -251,9 +251,11 @@ func DeleteOrg(ctx context.Context, input *DeleteOrgInput) (*struct{}, error) {
 	_store := store.FromContext(c)
 	org := session.Org(c)
 
+	cachesDeleted := purgeOrgBuildCaches(ctx, org)
 	if err := _store.OrgDelete(org.ID); err != nil {
 		return nil, dbErr(err)
 	}
+	cachesDeleted()
 
 	return nil, nil
 }

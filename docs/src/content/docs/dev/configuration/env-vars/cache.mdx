@@ -101,6 +101,47 @@ See [build caching](/dev/usage/caching/) for the pipeline syntax.
 
 ---
 
+## CACHE_MAX_ORG_SIZE
+
+- Name: `CROW_CACHE_MAX_ORG_SIZE`
+- Description: Default maximum total cache size of one user or organization (e.g. `50GiB`).
+  `0` means unlimited.
+  Admins can set another limit per user or organization in **Admin Settings > Caches**.
+  Eviction works as for `CROW_CACHE_MAX_REPO_SIZE`, across all repositories of the owner.
+- Default: `0`
+
+---
+
+## CACHE_MAX_ORG_EGRESS
+
+- Name: `CROW_CACHE_MAX_ORG_EGRESS`
+- Description: Default maximum number of bytes one user or organization restores per calendar month (UTC), e.g. `1TiB`.
+  `0` means unlimited.
+  Once reached, restores are skipped with a note in the step log until the next month.
+  Admins can set another limit per user or organization.
+- Default: `0`
+
+---
+
+## CACHE_ALLOW_USER_BUCKETS
+
+- Name: `CROW_CACHE_ALLOW_USER_BUCKETS`
+- Description: Let users and organizations keep their caches in an S3-compatible bucket of their own.
+  When turned off, caches already kept in such buckets are neither used nor deleted, and come back once it is turned on again.
+- Default: `true`
+
+---
+
+## CACHE_ALLOW_PRIVATE_BUCKET_ENDPOINTS
+
+- Name: `CROW_CACHE_ALLOW_PRIVATE_BUCKET_ENDPOINTS`
+- Description: Let the buckets users and organizations connect be on loopback, private, link-local or CGNAT addresses, for example a MinIO on the local network.
+  By default the server refuses to connect to such addresses, checked after name resolution, so users cannot make it probe internal services.
+  Proxy environment variables are not used for these buckets.
+- Default: `false`
+
+---
+
 ## CACHE_MAX_TOTAL_SIZE
 
 - Name: `CROW_CACHE_MAX_TOTAL_SIZE`

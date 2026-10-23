@@ -333,16 +333,28 @@ func setupBuildCache(ctx context.Context, c *cli.Command, s store.Store) error {
 	if err != nil {
 		return fmt.Errorf("CROW_CACHE_MAX_TOTAL_SIZE: %w", err)
 	}
+	maxOrgSize, err := parseByteSize(c.String("cache-max-org-size"))
+	if err != nil {
+		return fmt.Errorf("CROW_CACHE_MAX_ORG_SIZE: %w", err)
+	}
+	maxOrgEgress, err := parseByteSize(c.String("cache-max-org-egress"))
+	if err != nil {
+		return fmt.Errorf("CROW_CACHE_MAX_ORG_EGRESS: %w", err)
+	}
 
 	server.Config.Pipeline.CachePlugin = c.String("cache-plugin")
 	server.Config.Services.BuildCache = buildcache.New(s, storage, buildcache.Config{
-		BlobURL:      server.Config.Server.Host + "/api/v1/cache/blobs",
-		Secret:       server.Config.Server.JWTSecret,
-		MaxRepoSize:  maxRepoSize,
-		MaxTotalSize: maxTotalSize,
-		TTL:          c.Duration("cache-ttl"),
-		PendingTTL:   buildCachePendingTTL,
-		URLExpiry:    buildCacheURLExpiry,
+		BlobURL:             server.Config.Server.Host + "/api/v1/cache/blobs",
+		Secret:              server.Config.Server.JWTSecret,
+		MaxRepoSize:         maxRepoSize,
+		MaxOrgSize:          maxOrgSize,
+		MaxTotalSize:        maxTotalSize,
+		MaxOrgEgress:        maxOrgEgress,
+		TTL:                 c.Duration("cache-ttl"),
+		AllowBuckets:        c.Bool("cache-allow-user-buckets"),
+		AllowPrivateBuckets: c.Bool("cache-allow-private-bucket-endpoints"),
+		PendingTTL:          buildCachePendingTTL,
+		URLExpiry:           buildCacheURLExpiry,
 	})
 	log.Info().Str("backend", backend).Msg("build cache enabled")
 	return nil

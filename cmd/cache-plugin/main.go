@@ -126,6 +126,10 @@ func (p *plugin) restore(ctx context.Context, spec cacheSpec, key string, restor
 		fmt.Fprintf(p.out, "cache miss for %s\n", key)
 		return nil
 	}
+	if errors.Is(err, errEgress) {
+		fmt.Fprintf(p.out, "not restoring %s: %v\n", key, err)
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -173,11 +177,11 @@ func (p *plugin) restoreOnce(ctx context.Context, url string, paths []string, re
 
 func (p *plugin) save(ctx context.Context, spec cacheSpec, key string) error {
 	// A key is saved once; an exact hit means there is nothing to upload.
-	if _, err := p.client.restore(ctx, key, nil); err == nil {
+	if exists, err := p.client.exists(ctx, key); err != nil {
+		return err
+	} else if exists {
 		fmt.Fprintf(p.out, "%s is already cached, not saving\n", key)
 		return nil
-	} else if !errors.Is(err, errMiss) {
-		return err
 	}
 
 	archive, err := os.CreateTemp("", "crow-cache-*.tar.zst")

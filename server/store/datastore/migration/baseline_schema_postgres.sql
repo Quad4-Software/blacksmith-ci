@@ -60,7 +60,51 @@ CREATE TABLE IF NOT EXISTS build_caches (
     committed BOOLEAN NOT NULL DEFAULT false,
     created BIGINT NOT NULL DEFAULT 0,
     last_used BIGINT NOT NULL DEFAULT 0,
+    bucket_id BIGINT NOT NULL DEFAULT 0,
     UNIQUE(repo_id, scope, cache_key)
+);
+
+CREATE TABLE IF NOT EXISTS build_cache_settings (
+    org_id BIGINT PRIMARY KEY,
+    max_size BIGINT NOT NULL DEFAULT 0,
+    max_egress BIGINT NOT NULL DEFAULT 0,
+    ttl BIGINT NOT NULL DEFAULT 0,
+    updated BIGINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS build_cache_buckets (
+    id BIGSERIAL PRIMARY KEY,
+    org_id BIGINT NOT NULL,
+    endpoint VARCHAR(255) NOT NULL,
+    bucket VARCHAR(255) NOT NULL,
+    region VARCHAR(255),
+    prefix VARCHAR(255),
+    access_key VARCHAR(255),
+    secret_key TEXT,
+    use_ssl BOOLEAN NOT NULL DEFAULT true,
+    path_style BOOLEAN NOT NULL DEFAULT false,
+    max_size BIGINT NOT NULL DEFAULT 0,
+    max_egress BIGINT NOT NULL DEFAULT 0,
+    ttl BIGINT NOT NULL DEFAULT 0,
+    created BIGINT NOT NULL DEFAULT 0,
+    updated BIGINT NOT NULL DEFAULT 0,
+    UNIQUE(org_id)
+);
+
+CREATE TABLE IF NOT EXISTS build_cache_usage (
+    id BIGSERIAL PRIMARY KEY,
+    repo_id BIGINT NOT NULL,
+    org_id BIGINT NOT NULL,
+    bucket_id BIGINT NOT NULL DEFAULT 0,
+    day BIGINT NOT NULL,
+    hits BIGINT NOT NULL DEFAULT 0,
+    partial_hits BIGINT NOT NULL DEFAULT 0,
+    misses BIGINT NOT NULL DEFAULT 0,
+    denied BIGINT NOT NULL DEFAULT 0,
+    saves BIGINT NOT NULL DEFAULT 0,
+    egress BIGINT NOT NULL DEFAULT 0,
+    ingress BIGINT NOT NULL DEFAULT 0,
+    UNIQUE(repo_id, bucket_id, day)
 );
 
 CREATE TABLE IF NOT EXISTS repos (
@@ -570,6 +614,7 @@ CREATE INDEX IF NOT EXISTS idx_user_forges_forge_id ON user_forges (forge_id);
 CREATE INDEX IF NOT EXISTS idx_user_identities_user_id ON user_identities (user_id);
 
 CREATE INDEX IF NOT EXISTS idx_build_caches_last_used ON build_caches (last_used);
+CREATE INDEX IF NOT EXISTS idx_build_cache_usage_org_day ON build_cache_usage (org_id, day);
 
 CREATE INDEX IF NOT EXISTS idx_access_tokens_user_id ON access_tokens (user_id);
 CREATE INDEX IF NOT EXISTS idx_access_tokens_org_id ON access_tokens (org_id);

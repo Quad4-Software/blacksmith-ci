@@ -50,6 +50,11 @@ var (
 	ErrInvalidKey = errors.New("invalid cache key")
 	// ErrUnauthorized means the token is invalid or its workflow is not running.
 	ErrUnauthorized = errors.New("cache token is not valid")
+	// ErrEgressExceeded means restoring the entry would exceed the org's
+	// monthly egress limit.
+	ErrEgressExceeded = errors.New("cache egress limit of this month reached")
+	// ErrBucketGone means an entry's bucket was disconnected.
+	ErrBucketGone = errors.New("cache bucket is not connected")
 )
 
 const (
@@ -73,14 +78,34 @@ type Store interface {
 	BuildCacheFind(repoID int64, scope, key string) (*model.BuildCache, error)
 	BuildCacheFindPrefix(repoID int64, scope, prefix string) (*model.BuildCache, error)
 	BuildCacheList(repoID int64) ([]*model.BuildCache, error)
-	BuildCacheListLRU(repoID int64, limit int) ([]*model.BuildCache, error)
-	BuildCacheListStale(lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error)
-	BuildCacheSize(repoID int64) (int64, error)
+	BuildCacheListFilter(filter model.BuildCacheFilter) ([]*model.BuildCache, error)
+	BuildCacheListLRU(filter model.BuildCacheFilter, limit int) ([]*model.BuildCache, error)
+	BuildCacheListStale(filter model.BuildCacheFilter, lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error)
+	BuildCacheSize(filter model.BuildCacheFilter) (int64, error)
+	BuildCacheSizesByOrg() ([]*model.BuildCacheSize, error)
+	BuildCacheSizesByRepo(orgID int64) ([]*model.BuildCacheSize, error)
 	BuildCacheUpdate(*model.BuildCache) error
 	BuildCacheDelete(id int64) error
+	BuildCacheSettingsGet(orgID int64) (*model.BuildCacheSettings, error)
+	BuildCacheSettingsList() ([]*model.BuildCacheSettings, error)
+	BuildCacheSettingsSave(*model.BuildCacheSettings) error
+	BuildCacheSettingsDelete(orgID int64) error
+	BuildCacheBucketGet(id int64) (*model.BuildCacheBucket, error)
+	BuildCacheBucketFind(orgID int64) (*model.BuildCacheBucket, error)
+	BuildCacheBucketList() ([]*model.BuildCacheBucket, error)
+	BuildCacheBucketCreate(*model.BuildCacheBucket) error
+	BuildCacheBucketUpdate(*model.BuildCacheBucket) error
+	BuildCacheBucketDelete(id int64) error
+	BuildCacheUsageAdd(*model.BuildCacheUsage) error
+	BuildCacheUsageSum(filter model.BuildCacheUsageFilter) (*model.BuildCacheUsageCounts, error)
+	BuildCacheUsageByOrg(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)
+	BuildCacheUsageByRepo(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)
+	BuildCacheUsageByDay(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)
+	BuildCacheUsagePrune(before int64) error
 	WorkflowLoad(int64) (*model.Workflow, error)
 	GetPipeline(int64) (*model.Pipeline, error)
 	GetRepo(int64) (*model.Repo, error)
+	OrgGet(int64) (*model.Org, error)
 }
 
 // Config tunes the service.
@@ -92,10 +117,21 @@ type Config struct {
 	Secret string
 	// MaxRepoSize caps the cache of one repo in bytes; 0 means unlimited.
 	MaxRepoSize int64
+	// MaxOrgSize caps the cache of one org in bytes unless an admin set
+	// another limit for it; 0 means unlimited.
+	MaxOrgSize int64
 	// MaxTotalSize caps the cache of all repos in bytes; 0 means unlimited.
 	MaxTotalSize int64
+	// MaxOrgEgress caps the bytes one org restores per calendar month unless
+	// an admin set another limit for it; 0 means unlimited.
+	MaxOrgEgress int64
 	// TTL removes entries not restored for this long.
 	TTL time.Duration
+	// AllowBuckets lets orgs keep their caches in a bucket of their own.
+	AllowBuckets bool
+	// AllowPrivateBuckets lets those buckets be on loopback, private and
+	// link-local addresses, which the server refuses otherwise.
+	AllowPrivateBuckets bool
 	// PendingTTL removes uploads that were reserved but never committed.
 	PendingTTL time.Duration
 	// URLExpiry is the lifetime of presigned storage URLs.
@@ -112,11 +148,91 @@ type Service struct {
 	// quotaMu serializes the quota check and the reservation, so concurrent
 	// saves on one server cannot both claim the last free space.
 	quotaMu sync.Mutex
+
+	// openBucket connects to a bucket an org connected.
+	openBucket func(context.Context, *model.BuildCacheBucket) (Storage, error)
+	bucketsMu  sync.Mutex
+	// buckets are the open buckets by ID, reopened when the bucket changes.
+	buckets map[int64]openedBucket
+}
+
+type openedBucket struct {
+	storage Storage
+	updated int64
 }
 
 // New creates the service.
 func New(store Store, storage Storage, config Config) *Service {
-	return &Service{store: store, storage: storage, config: config, now: time.Now}
+	return &Service{
+		store:      store,
+		storage:    storage,
+		config:     config,
+		now:        time.Now,
+		openBucket: openS3Bucket(!config.AllowPrivateBuckets),
+		buckets:    map[int64]openedBucket{},
+	}
+}
+
+// openS3Bucket connects to the bucket of an org. With publicOnly, the
+// server refuses endpoints on internal addresses, so a user cannot make it
+// probe services that only it can reach.
+func openS3Bucket(publicOnly bool) func(context.Context, *model.BuildCacheBucket) (Storage, error) {
+	return func(ctx context.Context, bucket *model.BuildCacheBucket) (Storage, error) {
+		return NewS3Storage(ctx, S3Options{
+			Endpoint:   bucket.Endpoint,
+			Bucket:     bucket.Bucket,
+			Region:     bucket.Region,
+			AccessKey:  bucket.AccessKey,
+			SecretKey:  bucket.SecretKey,
+			SSL:        bucket.SSL,
+			PathStyle:  bucket.PathStyle,
+			Prefix:     bucket.Prefix,
+			PublicOnly: publicOnly,
+		})
+	}
+}
+
+// storageFor returns the storage of a bucket ID, 0 being the server's.
+func (s *Service) storageFor(ctx context.Context, bucketID int64) (Storage, error) {
+	if bucketID == model.BuildCacheGlobalStorage {
+		return s.storage, nil
+	}
+	bucket, err := s.store.BuildCacheBucketGet(bucketID)
+	if errors.Is(err, types.RecordNotExist) {
+		return nil, ErrBucketGone
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	s.bucketsMu.Lock()
+	opened, ok := s.buckets[bucketID]
+	s.bucketsMu.Unlock()
+	if ok && opened.updated == bucket.Updated {
+		return opened.storage, nil
+	}
+
+	storage, err := s.openBucket(ctx, bucket)
+	if err != nil {
+		return nil, fmt.Errorf("cannot connect to the cache bucket of org %d: %w", bucket.OrgID, err)
+	}
+	s.bucketsMu.Lock()
+	s.buckets[bucketID] = openedBucket{storage: storage, updated: bucket.Updated}
+	s.bucketsMu.Unlock()
+	return storage, nil
+}
+
+// visible reports whether an entry may be restored. While buckets are
+// disabled, entries in an org's bucket are neither restored nor deleted: the
+// server does not contact the bucket, and the cache is back once buckets are
+// enabled again.
+func (s *Service) visible(entry *model.BuildCache) bool {
+	return entry.BucketID == model.BuildCacheGlobalStorage || s.config.AllowBuckets
+}
+
+// BucketsAllowed reports whether orgs may connect buckets of their own.
+func (s *Service) BucketsAllowed() bool {
+	return s.config.AllowBuckets
 }
 
 // Hit is a restored entry and where to download it.
@@ -173,7 +289,17 @@ func (s *Service) Authorize(raw string) (Access, error) {
 	if err != nil {
 		return Access{}, ErrUnauthorized
 	}
-	return AccessFor(repo, pipeline), nil
+	access := AccessFor(repo, pipeline)
+	if s.config.AllowBuckets && access.OrgID != 0 {
+		bucket, err := s.store.BuildCacheBucketFind(access.OrgID)
+		switch {
+		case err == nil:
+			access.BucketID = bucket.ID
+		case !errors.Is(err, types.RecordNotExist):
+			return Access{}, err
+		}
+	}
+	return access, nil
 }
 
 // ValidateKey checks a cache key or restore key prefix.
@@ -194,7 +320,11 @@ func objectName(entry *model.BuildCache) string {
 // Restore finds the entry for key, falling back to the newest entry whose key
 // starts with one of restoreKeys. An exact match in any readable scope wins
 // over a prefix match; otherwise scopes are searched in order of preference.
-func (s *Service) Restore(ctx context.Context, access Access, key string, restoreKeys []string) (*Hit, error) {
+//
+// A check only asks whether key is cached, as a save does before archiving:
+// it is neither counted as a hit or miss nor held against the egress limit,
+// and its hit carries no download URL.
+func (s *Service) Restore(ctx context.Context, access Access, key string, restoreKeys []string, check bool) (*Hit, error) {
 	if err := ValidateKey(key); err != nil {
 		return nil, err
 	}
@@ -205,31 +335,67 @@ func (s *Service) Restore(ctx context.Context, access Access, key string, restor
 	}
 
 	hit, err := s.findStored(ctx, access, key, restoreKeys)
+	if errors.Is(err, ErrNotFound) && !check {
+		s.record(access, model.BuildCacheUsageCounts{Misses: 1})
+	}
 	if err != nil {
 		return nil, err
+	}
+
+	if !check {
+		if err := s.checkEgress(access, hit.Entry.Size); err != nil {
+			s.record(access, model.BuildCacheUsageCounts{Denied: 1})
+			return nil, err
+		}
 	}
 
 	hit.Entry.LastUsed = s.now().Unix()
 	if err := s.store.BuildCacheUpdate(hit.Entry); err != nil {
 		return nil, err
 	}
+	if check {
+		// A check gets no download URL, or it could restore past the
+		// egress limit without being counted.
+		return hit, nil
+	}
 	hit.URL, err = s.downloadURL(ctx, hit.Entry)
 	if err != nil {
 		return nil, err
 	}
+
+	counts := model.BuildCacheUsageCounts{Egress: hit.Entry.Size}
+	if hit.Exact {
+		counts.Hits = 1
+	} else {
+		counts.PartialHits = 1
+	}
+	s.record(access, counts)
 	return hit, nil
 }
 
 // findStored is find, skipping entries whose archive is gone from storage. Such
 // an entry is deleted, so the key can be saved again; otherwise it would never
 // restore and also block its key until it expires.
+//
+// An entry kept in another storage than the org uses now, left over from
+// connecting or disconnecting a bucket, is deleted the same way.
 func (s *Service) findStored(ctx context.Context, access Access, key string, restoreKeys []string) (*Hit, error) {
 	for {
 		hit, err := s.find(access, key, restoreKeys)
 		if err != nil {
 			return nil, err
 		}
-		_, err = s.storage.Size(ctx, objectName(hit.Entry))
+		if hit.Entry.BucketID != access.BucketID {
+			if err := s.forget(ctx, hit.Entry); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		storage, err := s.storageFor(ctx, hit.Entry.BucketID)
+		if err != nil {
+			return nil, err
+		}
+		_, err = storage.Size(ctx, objectName(hit.Entry))
 		if err == nil {
 			return hit, nil
 		}
@@ -247,7 +413,7 @@ func (s *Service) findStored(ctx context.Context, access Access, key string, res
 func (s *Service) find(access Access, key string, restoreKeys []string) (*Hit, error) {
 	for _, scope := range access.ReadScopes {
 		entry, err := s.store.BuildCacheFind(access.RepoID, scope, key)
-		if err == nil && entry.Committed {
+		if err == nil && entry.Committed && s.visible(entry) {
 			return &Hit{Entry: entry, Exact: true}, nil
 		}
 		if err != nil && !errors.Is(err, types.RecordNotExist) {
@@ -257,8 +423,11 @@ func (s *Service) find(access Access, key string, restoreKeys []string) (*Hit, e
 	for _, scope := range access.ReadScopes {
 		for _, prefix := range restoreKeys {
 			entry, err := s.store.BuildCacheFindPrefix(access.RepoID, scope, prefix)
-			if err == nil {
+			if err == nil && s.visible(entry) {
 				return &Hit{Entry: entry}, nil
+			}
+			if err == nil {
+				continue
 			}
 			if !errors.Is(err, types.RecordNotExist) {
 				return nil, err
@@ -289,6 +458,15 @@ func (s *Service) Reserve(ctx context.Context, access Access, key string, size i
 			continue
 		case err != nil:
 			return nil, err
+		case !s.visible(entry):
+			// Kept in a bucket while buckets are disabled; it must survive
+			// until they are enabled again.
+			return nil, ErrExists
+		case entry.BucketID != access.BucketID:
+			// Left over from the storage the org used before.
+			if err := s.forget(ctx, entry); err != nil {
+				return nil, err
+			}
 		case entry.Committed:
 			return nil, ErrExists
 		case scope == access.WriteScope && s.abandoned(entry):
@@ -302,16 +480,23 @@ func (s *Service) Reserve(ctx context.Context, access Access, key string, size i
 		}
 	}
 
+	// A storage that cannot be reached must fail before the key is reserved,
+	// or the pending entry would block the key until it is abandoned.
+	if _, err := s.storageFor(ctx, access.BucketID); err != nil {
+		return nil, err
+	}
+
 	s.quotaMu.Lock()
 	defer s.quotaMu.Unlock()
 
-	if err := s.makeRoom(ctx, access.RepoID, size); err != nil {
+	if err := s.makeRoom(ctx, access, size); err != nil {
 		return nil, err
 	}
 
 	now := s.now().Unix()
 	entry := &model.BuildCache{
 		RepoID:   access.RepoID,
+		BucketID: access.BucketID,
 		Scope:    access.WriteScope,
 		Key:      key,
 		Size:     size,
@@ -327,7 +512,7 @@ func (s *Service) Reserve(ctx context.Context, access Access, key string, size i
 
 	url, err := s.uploadURL(ctx, entry)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, s.deleteRow(entry))
 	}
 	return &Reservation{Entry: entry, URL: url}, nil
 }
@@ -336,8 +521,15 @@ func (s *Service) Reserve(ctx context.Context, access Access, key string, size i
 // step sends in parallel. It leaves the reservation alone when the storage
 // cannot take parts or the archive fits into one.
 func (s *Service) UploadInParts(ctx context.Context, r *Reservation) error {
-	storage, ok := s.storage.(MultipartStorage)
-	if !ok || r.Entry.Size <= partSize {
+	if r.Entry.Size <= partSize {
+		return nil
+	}
+	plain, err := s.storageFor(ctx, r.Entry.BucketID)
+	if err != nil {
+		return err
+	}
+	storage, ok := plain.(MultipartStorage)
+	if !ok {
 		return nil
 	}
 	size := max(partSize, (r.Entry.Size+maxParts-1)/maxParts)
@@ -355,50 +547,82 @@ func (s *Service) abandoned(entry *model.BuildCache) bool {
 }
 
 // makeRoom evicts least recently used committed entries until size more bytes
-// fit into both the repo and the total quota.
-func (s *Service) makeRoom(ctx context.Context, repoID, size int64) error {
-	if s.config.MaxRepoSize > 0 && size > s.config.MaxRepoSize {
-		return ErrQuotaExceeded
+// fit into the repo, org and total quota. A bucket the org connected is
+// limited only by the size limit its owner set.
+func (s *Service) makeRoom(ctx context.Context, access Access, size int64) error {
+	if access.BucketID != model.BuildCacheGlobalStorage {
+		return s.makeBucketRoom(ctx, access.BucketID, size)
 	}
-	if s.config.MaxTotalSize > 0 && size > s.config.MaxTotalSize {
-		return ErrQuotaExceeded
-	}
-	if err := s.evictUntil(ctx, repoID, s.config.MaxRepoSize, size); err != nil {
+	orgLimit, err := s.orgSizeLimit(access.OrgID)
+	if err != nil {
 		return err
 	}
-	return s.evictUntil(ctx, 0, s.config.MaxTotalSize, size)
+	for _, limit := range []int64{s.config.MaxRepoSize, orgLimit, s.config.MaxTotalSize} {
+		if limit > 0 && size > limit {
+			return ErrQuotaExceeded
+		}
+	}
+	if _, err := s.evictUntil(ctx, model.BuildCacheFilter{RepoID: access.RepoID}, s.config.MaxRepoSize, size); err != nil {
+		return err
+	}
+	if access.OrgID != 0 {
+		if _, err := s.evictUntil(ctx, model.BuildCacheFilter{OrgID: access.OrgID}, orgLimit, size); err != nil {
+			return err
+		}
+	}
+	_, err = s.evictUntil(ctx, model.BuildCacheFilter{}, s.config.MaxTotalSize, size)
+	return err
 }
 
-// evictUntil evicts entries of repoID (0 for all repos) until used+extra fits
-// into limit. A limit of 0 means unlimited.
-func (s *Service) evictUntil(ctx context.Context, repoID, limit, extra int64) error {
+// makeBucketRoom evicts entries of a bucket until size more bytes fit into
+// the size limit its owner set.
+func (s *Service) makeBucketRoom(ctx context.Context, bucketID, size int64) error {
+	bucket, err := s.store.BuildCacheBucketGet(bucketID)
+	if errors.Is(err, types.RecordNotExist) {
+		return ErrBucketGone
+	}
+	if err != nil {
+		return err
+	}
+	if bucket.MaxSize > 0 && size > bucket.MaxSize {
+		return ErrQuotaExceeded
+	}
+	_, err = s.evictUntil(ctx, model.BuildCacheFilter{BucketID: bucketID}, bucket.MaxSize, size)
+	return err
+}
+
+// evictUntil evicts entries matching filter until their size plus extra fits
+// into limit, reporting what it removed. A limit of 0 means unlimited.
+func (s *Service) evictUntil(ctx context.Context, filter model.BuildCacheFilter, limit, extra int64) (CleanupResult, error) {
+	var result CleanupResult
 	if limit <= 0 {
-		return nil
+		return result, nil
 	}
 	for {
-		used, err := s.store.BuildCacheSize(repoID)
+		used, err := s.store.BuildCacheSize(filter)
 		if err != nil {
-			return err
+			return result, err
 		}
 		if used+extra <= limit {
-			return nil
+			return result, nil
 		}
-		victims, err := s.store.BuildCacheListLRU(repoID, evictBatch)
+		victims, err := s.store.BuildCacheListLRU(filter, evictBatch)
 		if err != nil {
-			return err
+			return result, err
 		}
 		if len(victims) == 0 {
 			// Only pending uploads are left, nothing can be evicted.
-			return ErrQuotaExceeded
+			return result, ErrQuotaExceeded
 		}
 		for _, victim := range victims {
 			if err := s.delete(ctx, victim); err != nil {
-				return err
+				return result, err
 			}
+			result.add(victim)
 			used -= victim.Size
 			log.Debug().Int64("repo_id", victim.RepoID).Str("key", victim.Key).Msg("evicted build cache entry to make room")
 			if used+extra <= limit {
-				return nil
+				return result, nil
 			}
 		}
 	}
@@ -413,17 +637,21 @@ func (s *Service) Commit(ctx context.Context, access Access, id int64, uploadID 
 		return nil, err
 	}
 
+	storage, err := s.storageFor(ctx, entry.BucketID)
+	if err != nil {
+		return nil, err
+	}
 	if uploadID != "" {
-		storage, ok := s.storage.(MultipartStorage)
+		multipart, ok := storage.(MultipartStorage)
 		if !ok {
 			return nil, ErrNotFound
 		}
-		if err := storage.CompleteMultipart(ctx, objectName(entry), uploadID); err != nil {
+		if err := multipart.CompleteMultipart(ctx, objectName(entry), uploadID); err != nil {
 			return nil, fmt.Errorf("cache archive was not uploaded: %w", err)
 		}
 	}
 
-	size, err := s.storage.Size(ctx, objectName(entry))
+	size, err := storage.Size(ctx, objectName(entry))
 	if err != nil {
 		return nil, fmt.Errorf("cache archive was not uploaded: %w", err)
 	}
@@ -431,7 +659,7 @@ func (s *Service) Commit(ctx context.Context, access Access, id int64, uploadID 
 	if size > entry.Size {
 		// The upload is larger than reserved, so claim the difference too.
 		s.quotaMu.Lock()
-		err := s.makeRoom(ctx, entry.RepoID, size-entry.Size)
+		err := s.makeRoom(ctx, access, size-entry.Size)
 		s.quotaMu.Unlock()
 		if err != nil {
 			if delErr := s.delete(ctx, entry); delErr != nil {
@@ -444,7 +672,11 @@ func (s *Service) Commit(ctx context.Context, access Access, id int64, uploadID 
 	entry.Size = size
 	entry.Committed = true
 	entry.LastUsed = s.now().Unix()
-	return entry, s.store.BuildCacheUpdate(entry)
+	if err := s.store.BuildCacheUpdate(entry); err != nil {
+		return nil, err
+	}
+	s.record(access, model.BuildCacheUsageCounts{Saves: 1, Ingress: size})
+	return entry, nil
 }
 
 // writable loads a pending entry the workflow may upload to.
@@ -456,7 +688,8 @@ func (s *Service) writable(access Access, id int64) (*model.BuildCache, error) {
 	if err != nil {
 		return nil, err
 	}
-	if entry.RepoID != access.RepoID || access.WriteScope == "" || entry.Scope != access.WriteScope || entry.Committed {
+	if entry.RepoID != access.RepoID || access.WriteScope == "" || entry.Scope != access.WriteScope || entry.Committed ||
+		entry.BucketID != access.BucketID {
 		return nil, ErrNotFound
 	}
 	return entry, nil
@@ -471,10 +704,14 @@ func (s *Service) OpenBlob(ctx context.Context, access Access, id int64) (io.Rea
 	if err != nil {
 		return nil, 0, err
 	}
-	if entry.RepoID != access.RepoID || !access.CanRead(entry.Scope) || !entry.Committed {
+	if entry.RepoID != access.RepoID || !access.CanRead(entry.Scope) || !entry.Committed || entry.BucketID != access.BucketID {
 		return nil, 0, ErrNotFound
 	}
-	r, err := s.storage.Open(ctx, objectName(entry))
+	storage, err := s.storageFor(ctx, entry.BucketID)
+	if err != nil {
+		return nil, 0, err
+	}
+	r, err := storage.Open(ctx, objectName(entry))
 	return r, entry.Size, err
 }
 
@@ -485,12 +722,20 @@ func (s *Service) WriteBlob(ctx context.Context, access Access, id int64, r io.R
 	if err != nil {
 		return err
 	}
-	_, err = s.storage.Write(ctx, objectName(entry), r, entry.Size)
+	storage, err := s.storageFor(ctx, entry.BucketID)
+	if err != nil {
+		return err
+	}
+	_, err = storage.Write(ctx, objectName(entry), r, entry.Size)
 	return err
 }
 
 func (s *Service) downloadURL(ctx context.Context, entry *model.BuildCache) (string, error) {
-	url, err := s.storage.DownloadURL(ctx, objectName(entry), s.config.URLExpiry)
+	storage, err := s.storageFor(ctx, entry.BucketID)
+	if err != nil {
+		return "", err
+	}
+	url, err := storage.DownloadURL(ctx, objectName(entry), s.config.URLExpiry)
 	if err != nil || url != "" {
 		return url, err
 	}
@@ -498,7 +743,11 @@ func (s *Service) downloadURL(ctx context.Context, entry *model.BuildCache) (str
 }
 
 func (s *Service) uploadURL(ctx context.Context, entry *model.BuildCache) (string, error) {
-	url, err := s.storage.UploadURL(ctx, objectName(entry), s.config.URLExpiry)
+	storage, err := s.storageFor(ctx, entry.BucketID)
+	if err != nil {
+		return "", err
+	}
+	url, err := storage.UploadURL(ctx, objectName(entry), s.config.URLExpiry)
 	if err != nil || url != "" {
 		return url, err
 	}
@@ -536,50 +785,46 @@ func (s *Service) Purge(ctx context.Context, repoID int64) error {
 }
 
 // delete removes the archive before the row, so a failure leaves a row the
-// next cleanup retries rather than an archive nothing refers to.
+// next cleanup retries rather than an archive nothing refers to. The row of an
+// entry whose bucket was disconnected is just dropped.
 func (s *Service) delete(ctx context.Context, entry *model.BuildCache) error {
-	if storage, ok := s.storage.(MultipartStorage); ok && !entry.Committed {
+	storage, err := s.storageFor(ctx, entry.BucketID)
+	if errors.Is(err, ErrBucketGone) {
+		return s.deleteRow(entry)
+	}
+	if err != nil {
+		return err
+	}
+	if multipart, ok := storage.(MultipartStorage); ok && !entry.Committed {
 		// The parts of an upload that never finished are stored, and billed,
 		// until they are aborted.
-		if err := storage.AbortMultipart(ctx, objectName(entry)); err != nil {
+		if err := multipart.AbortMultipart(ctx, objectName(entry)); err != nil {
 			log.Warn().Err(err).Int64("id", entry.ID).Msg("could not abort the unfinished upload of a build cache entry")
 		}
 	}
-	if err := s.storage.Delete(ctx, objectName(entry)); err != nil {
+	if err := storage.Delete(ctx, objectName(entry)); err != nil {
 		return fmt.Errorf("delete cache archive %d: %w", entry.ID, err)
 	}
-	if err := s.store.BuildCacheDelete(entry.ID); err != nil && !errors.Is(err, types.RecordNotExist) {
-		return err
+	return s.deleteRow(entry)
+}
+
+// forget deletes an entry, dropping its row even when its archive cannot be
+// deleted: the archive is in a bucket the org owns, or will be in one it
+// disconnects, and the row must not shadow the key.
+func (s *Service) forget(ctx context.Context, entry *model.BuildCache) error {
+	if err := s.delete(ctx, entry); err != nil {
+		log.Warn().Err(err).Int64("id", entry.ID).Int64("bucket_id", entry.BucketID).
+			Msg("could not delete the archive of a build cache entry, dropping the entry anyway")
+		return s.deleteRow(entry)
 	}
 	return nil
 }
 
-// Cleanup removes entries unused for longer than the TTL and abandoned
-// uploads, then evicts entries until the total quota holds again.
-func (s *Service) Cleanup(ctx context.Context) error {
-	now := s.now()
-	var lastUsedBefore int64
-	if s.config.TTL > 0 {
-		lastUsedBefore = now.Add(-s.config.TTL).Unix()
-	}
-	stale, err := s.store.BuildCacheListStale(lastUsedBefore, now.Add(-s.config.PendingTTL).Unix())
-	if err != nil {
+func (s *Service) deleteRow(entry *model.BuildCache) error {
+	if err := s.store.BuildCacheDelete(entry.ID); err != nil && !errors.Is(err, types.RecordNotExist) {
 		return err
 	}
-	var errs []error
-	for _, entry := range stale {
-		errs = append(errs, s.delete(ctx, entry))
-	}
-	if len(stale) > 0 {
-		log.Info().Int("count", len(stale)).Msg("removed expired build cache entries")
-	}
-
-	s.quotaMu.Lock()
-	defer s.quotaMu.Unlock()
-	if err := s.evictUntil(ctx, 0, s.config.MaxTotalSize, 0); err != nil && !errors.Is(err, ErrQuotaExceeded) {
-		errs = append(errs, err)
-	}
-	return errors.Join(errs...)
+	return nil
 }
 
 // RunCleanup runs Cleanup every interval until ctx is done.
@@ -591,7 +836,7 @@ func (s *Service) RunCleanup(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := s.Cleanup(ctx); err != nil {
+			if _, err := s.Cleanup(ctx); err != nil {
 				log.Error().Err(err).Msg("build cache cleanup failed")
 			}
 		}

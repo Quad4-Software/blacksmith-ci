@@ -59,6 +59,9 @@
           $t('repo.settings.caches.total_size', { size: formatCacheSize(caches.size), count: caches.entries.length })
         }}
       </p>
+      <p v-if="caches.usage && restores > 0" class="text-sm text-muted-foreground" data-testid="caches-hit-rate">
+        {{ $t('repo.settings.caches.hit_rate_30d', { rate: formatHitRate(cacheHitRate(caches.usage)), restores }) }}
+      </p>
 
       <div class="rounded-md border">
         <Table>
@@ -162,7 +165,7 @@ import { useDate } from '~/compositions/useDate';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import type { BuildCache, RepoCaches } from '~/lib/api/types';
-import { formatCacheSize, parseCacheScope } from '~/lib/build-cache';
+import { cacheHitRate, cacheRestores, formatCacheSize, formatHitRate, parseCacheScope } from '~/lib/build-cache';
 import type { CacheScopeKind } from '~/lib/build-cache';
 
 const cacheBackendEnv = 'CROW_CACHE_BACKEND';
@@ -182,6 +185,8 @@ const { timeAgo, toLocaleString } = useDate();
 const repo = requiredInject('repo');
 const caches = ref<RepoCaches>();
 const deletingId = ref<number>();
+
+const restores = computed(() => (caches.value?.usage ? cacheRestores(caches.value.usage) : 0));
 
 const hasEntries = computed(() => !!caches.value?.enabled && caches.value.entries.length > 0);
 

@@ -209,6 +209,12 @@ const routes: RouteRecordRaw[] = [
             component: (): Component => import('~/views/org/settings/OrgAgents.vue'),
             props: true,
           },
+          {
+            path: 'caches',
+            name: 'org-settings-caches',
+            component: (): Component => import('~/views/org/settings/OrgCaches.vue'),
+            props: true,
+          },
         ],
       },
     ],
@@ -357,6 +363,12 @@ const routes: RouteRecordRaw[] = [
         path: 'maintenance',
         name: 'admin-settings-maintenance',
         component: (): Component => import('~/views/admin/AdminMaintenance.vue'),
+        props: true,
+      },
+      {
+        path: 'caches',
+        name: 'admin-settings-caches',
+        component: (): Component => import('~/views/admin/AdminCaches.vue'),
         props: true,
       },
       {

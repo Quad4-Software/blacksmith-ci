@@ -1735,6 +1735,338 @@ func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) RunAndReturn(run func(id int
 	return _c
 }
 
+// BuildCacheBucketCreate provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheBucketCreate(buildCacheBucket *model.BuildCacheBucket) error {
+	ret := _mock.Called(buildCacheBucket)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheBucketCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.BuildCacheBucket) error); ok {
+		r0 = returnFunc(buildCacheBucket)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_BuildCacheBucketCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheBucketCreate'
+type MockStore_BuildCacheBucketCreate_Call struct {
+	*mock.Call
+}
+
+// BuildCacheBucketCreate is a helper method to define mock.On call
+//   - buildCacheBucket *model.BuildCacheBucket
+func (_e *MockStore_Expecter) BuildCacheBucketCreate(buildCacheBucket any) *MockStore_BuildCacheBucketCreate_Call {
+	return &MockStore_BuildCacheBucketCreate_Call{Call: _e.mock.On("BuildCacheBucketCreate", buildCacheBucket)}
+}
+
+func (_c *MockStore_BuildCacheBucketCreate_Call) Run(run func(buildCacheBucket *model.BuildCacheBucket)) *MockStore_BuildCacheBucketCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.BuildCacheBucket
+		if args[0] != nil {
+			arg0 = args[0].(*model.BuildCacheBucket)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketCreate_Call) Return(err error) *MockStore_BuildCacheBucketCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketCreate_Call) RunAndReturn(run func(buildCacheBucket *model.BuildCacheBucket) error) *MockStore_BuildCacheBucketCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheBucketDelete provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheBucketDelete(id int64) error {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheBucketDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_BuildCacheBucketDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheBucketDelete'
+type MockStore_BuildCacheBucketDelete_Call struct {
+	*mock.Call
+}
+
+// BuildCacheBucketDelete is a helper method to define mock.On call
+//   - id int64
+func (_e *MockStore_Expecter) BuildCacheBucketDelete(id any) *MockStore_BuildCacheBucketDelete_Call {
+	return &MockStore_BuildCacheBucketDelete_Call{Call: _e.mock.On("BuildCacheBucketDelete", id)}
+}
+
+func (_c *MockStore_BuildCacheBucketDelete_Call) Run(run func(id int64)) *MockStore_BuildCacheBucketDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketDelete_Call) Return(err error) *MockStore_BuildCacheBucketDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketDelete_Call) RunAndReturn(run func(id int64) error) *MockStore_BuildCacheBucketDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheBucketFind provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheBucketFind(orgID int64) (*model.BuildCacheBucket, error) {
+	ret := _mock.Called(orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheBucketFind")
+	}
+
+	var r0 *model.BuildCacheBucket
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.BuildCacheBucket, error)); ok {
+		return returnFunc(orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.BuildCacheBucket); ok {
+		r0 = returnFunc(orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.BuildCacheBucket)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheBucketFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheBucketFind'
+type MockStore_BuildCacheBucketFind_Call struct {
+	*mock.Call
+}
+
+// BuildCacheBucketFind is a helper method to define mock.On call
+//   - orgID int64
+func (_e *MockStore_Expecter) BuildCacheBucketFind(orgID any) *MockStore_BuildCacheBucketFind_Call {
+	return &MockStore_BuildCacheBucketFind_Call{Call: _e.mock.On("BuildCacheBucketFind", orgID)}
+}
+
+func (_c *MockStore_BuildCacheBucketFind_Call) Run(run func(orgID int64)) *MockStore_BuildCacheBucketFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketFind_Call) Return(buildCacheBucket *model.BuildCacheBucket, err error) *MockStore_BuildCacheBucketFind_Call {
+	_c.Call.Return(buildCacheBucket, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketFind_Call) RunAndReturn(run func(orgID int64) (*model.BuildCacheBucket, error)) *MockStore_BuildCacheBucketFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheBucketGet provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheBucketGet(id int64) (*model.BuildCacheBucket, error) {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheBucketGet")
+	}
+
+	var r0 *model.BuildCacheBucket
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.BuildCacheBucket, error)); ok {
+		return returnFunc(id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.BuildCacheBucket); ok {
+		r0 = returnFunc(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.BuildCacheBucket)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheBucketGet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheBucketGet'
+type MockStore_BuildCacheBucketGet_Call struct {
+	*mock.Call
+}
+
+// BuildCacheBucketGet is a helper method to define mock.On call
+//   - id int64
+func (_e *MockStore_Expecter) BuildCacheBucketGet(id any) *MockStore_BuildCacheBucketGet_Call {
+	return &MockStore_BuildCacheBucketGet_Call{Call: _e.mock.On("BuildCacheBucketGet", id)}
+}
+
+func (_c *MockStore_BuildCacheBucketGet_Call) Run(run func(id int64)) *MockStore_BuildCacheBucketGet_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketGet_Call) Return(buildCacheBucket *model.BuildCacheBucket, err error) *MockStore_BuildCacheBucketGet_Call {
+	_c.Call.Return(buildCacheBucket, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketGet_Call) RunAndReturn(run func(id int64) (*model.BuildCacheBucket, error)) *MockStore_BuildCacheBucketGet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheBucketList provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheBucketList() ([]*model.BuildCacheBucket, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheBucketList")
+	}
+
+	var r0 []*model.BuildCacheBucket
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.BuildCacheBucket, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.BuildCacheBucket); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCacheBucket)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheBucketList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheBucketList'
+type MockStore_BuildCacheBucketList_Call struct {
+	*mock.Call
+}
+
+// BuildCacheBucketList is a helper method to define mock.On call
+func (_e *MockStore_Expecter) BuildCacheBucketList() *MockStore_BuildCacheBucketList_Call {
+	return &MockStore_BuildCacheBucketList_Call{Call: _e.mock.On("BuildCacheBucketList")}
+}
+
+func (_c *MockStore_BuildCacheBucketList_Call) Run(run func()) *MockStore_BuildCacheBucketList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketList_Call) Return(buildCacheBuckets []*model.BuildCacheBucket, err error) *MockStore_BuildCacheBucketList_Call {
+	_c.Call.Return(buildCacheBuckets, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketList_Call) RunAndReturn(run func() ([]*model.BuildCacheBucket, error)) *MockStore_BuildCacheBucketList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheBucketUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheBucketUpdate(buildCacheBucket *model.BuildCacheBucket) error {
+	ret := _mock.Called(buildCacheBucket)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheBucketUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.BuildCacheBucket) error); ok {
+		r0 = returnFunc(buildCacheBucket)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_BuildCacheBucketUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheBucketUpdate'
+type MockStore_BuildCacheBucketUpdate_Call struct {
+	*mock.Call
+}
+
+// BuildCacheBucketUpdate is a helper method to define mock.On call
+//   - buildCacheBucket *model.BuildCacheBucket
+func (_e *MockStore_Expecter) BuildCacheBucketUpdate(buildCacheBucket any) *MockStore_BuildCacheBucketUpdate_Call {
+	return &MockStore_BuildCacheBucketUpdate_Call{Call: _e.mock.On("BuildCacheBucketUpdate", buildCacheBucket)}
+}
+
+func (_c *MockStore_BuildCacheBucketUpdate_Call) Run(run func(buildCacheBucket *model.BuildCacheBucket)) *MockStore_BuildCacheBucketUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.BuildCacheBucket
+		if args[0] != nil {
+			arg0 = args[0].(*model.BuildCacheBucket)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketUpdate_Call) Return(err error) *MockStore_BuildCacheBucketUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheBucketUpdate_Call) RunAndReturn(run func(buildCacheBucket *model.BuildCacheBucket) error) *MockStore_BuildCacheBucketUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BuildCacheCreate provides a mock function for the type MockStore
 func (_mock *MockStore) BuildCacheCreate(buildCache *model.BuildCache) error {
 	ret := _mock.Called(buildCache)
@@ -2109,9 +2441,71 @@ func (_c *MockStore_BuildCacheList_Call) RunAndReturn(run func(repoID int64) ([]
 	return _c
 }
 
+// BuildCacheListFilter provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheListFilter(filter model.BuildCacheFilter) ([]*model.BuildCache, error) {
+	ret := _mock.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheListFilter")
+	}
+
+	var r0 []*model.BuildCache
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter) ([]*model.BuildCache, error)); ok {
+		return returnFunc(filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter) []*model.BuildCache); ok {
+		r0 = returnFunc(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCache)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheFilter) error); ok {
+		r1 = returnFunc(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheListFilter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheListFilter'
+type MockStore_BuildCacheListFilter_Call struct {
+	*mock.Call
+}
+
+// BuildCacheListFilter is a helper method to define mock.On call
+//   - filter model.BuildCacheFilter
+func (_e *MockStore_Expecter) BuildCacheListFilter(filter any) *MockStore_BuildCacheListFilter_Call {
+	return &MockStore_BuildCacheListFilter_Call{Call: _e.mock.On("BuildCacheListFilter", filter)}
+}
+
+func (_c *MockStore_BuildCacheListFilter_Call) Run(run func(filter model.BuildCacheFilter)) *MockStore_BuildCacheListFilter_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 model.BuildCacheFilter
+		if args[0] != nil {
+			arg0 = args[0].(model.BuildCacheFilter)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheListFilter_Call) Return(buildCaches []*model.BuildCache, err error) *MockStore_BuildCacheListFilter_Call {
+	_c.Call.Return(buildCaches, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheListFilter_Call) RunAndReturn(run func(filter model.BuildCacheFilter) ([]*model.BuildCache, error)) *MockStore_BuildCacheListFilter_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BuildCacheListLRU provides a mock function for the type MockStore
-func (_mock *MockStore) BuildCacheListLRU(repoID int64, limit int) ([]*model.BuildCache, error) {
-	ret := _mock.Called(repoID, limit)
+func (_mock *MockStore) BuildCacheListLRU(filter model.BuildCacheFilter, limit int) ([]*model.BuildCache, error) {
+	ret := _mock.Called(filter, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BuildCacheListLRU")
@@ -2119,18 +2513,18 @@ func (_mock *MockStore) BuildCacheListLRU(repoID int64, limit int) ([]*model.Bui
 
 	var r0 []*model.BuildCache
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(int64, int) ([]*model.BuildCache, error)); ok {
-		return returnFunc(repoID, limit)
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter, int) ([]*model.BuildCache, error)); ok {
+		return returnFunc(filter, limit)
 	}
-	if returnFunc, ok := ret.Get(0).(func(int64, int) []*model.BuildCache); ok {
-		r0 = returnFunc(repoID, limit)
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter, int) []*model.BuildCache); ok {
+		r0 = returnFunc(filter, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*model.BuildCache)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(int64, int) error); ok {
-		r1 = returnFunc(repoID, limit)
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheFilter, int) error); ok {
+		r1 = returnFunc(filter, limit)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2143,17 +2537,17 @@ type MockStore_BuildCacheListLRU_Call struct {
 }
 
 // BuildCacheListLRU is a helper method to define mock.On call
-//   - repoID int64
+//   - filter model.BuildCacheFilter
 //   - limit int
-func (_e *MockStore_Expecter) BuildCacheListLRU(repoID any, limit any) *MockStore_BuildCacheListLRU_Call {
-	return &MockStore_BuildCacheListLRU_Call{Call: _e.mock.On("BuildCacheListLRU", repoID, limit)}
+func (_e *MockStore_Expecter) BuildCacheListLRU(filter any, limit any) *MockStore_BuildCacheListLRU_Call {
+	return &MockStore_BuildCacheListLRU_Call{Call: _e.mock.On("BuildCacheListLRU", filter, limit)}
 }
 
-func (_c *MockStore_BuildCacheListLRU_Call) Run(run func(repoID int64, limit int)) *MockStore_BuildCacheListLRU_Call {
+func (_c *MockStore_BuildCacheListLRU_Call) Run(run func(filter model.BuildCacheFilter, limit int)) *MockStore_BuildCacheListLRU_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 int64
+		var arg0 model.BuildCacheFilter
 		if args[0] != nil {
-			arg0 = args[0].(int64)
+			arg0 = args[0].(model.BuildCacheFilter)
 		}
 		var arg1 int
 		if args[1] != nil {
@@ -2172,14 +2566,14 @@ func (_c *MockStore_BuildCacheListLRU_Call) Return(buildCaches []*model.BuildCac
 	return _c
 }
 
-func (_c *MockStore_BuildCacheListLRU_Call) RunAndReturn(run func(repoID int64, limit int) ([]*model.BuildCache, error)) *MockStore_BuildCacheListLRU_Call {
+func (_c *MockStore_BuildCacheListLRU_Call) RunAndReturn(run func(filter model.BuildCacheFilter, limit int) ([]*model.BuildCache, error)) *MockStore_BuildCacheListLRU_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // BuildCacheListStale provides a mock function for the type MockStore
-func (_mock *MockStore) BuildCacheListStale(lastUsedBefore int64, pendingBefore int64) ([]*model.BuildCache, error) {
-	ret := _mock.Called(lastUsedBefore, pendingBefore)
+func (_mock *MockStore) BuildCacheListStale(filter model.BuildCacheFilter, lastUsedBefore int64, pendingBefore int64) ([]*model.BuildCache, error) {
+	ret := _mock.Called(filter, lastUsedBefore, pendingBefore)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BuildCacheListStale")
@@ -2187,18 +2581,18 @@ func (_mock *MockStore) BuildCacheListStale(lastUsedBefore int64, pendingBefore 
 
 	var r0 []*model.BuildCache
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(int64, int64) ([]*model.BuildCache, error)); ok {
-		return returnFunc(lastUsedBefore, pendingBefore)
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter, int64, int64) ([]*model.BuildCache, error)); ok {
+		return returnFunc(filter, lastUsedBefore, pendingBefore)
 	}
-	if returnFunc, ok := ret.Get(0).(func(int64, int64) []*model.BuildCache); ok {
-		r0 = returnFunc(lastUsedBefore, pendingBefore)
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter, int64, int64) []*model.BuildCache); ok {
+		r0 = returnFunc(filter, lastUsedBefore, pendingBefore)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*model.BuildCache)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(int64, int64) error); ok {
-		r1 = returnFunc(lastUsedBefore, pendingBefore)
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheFilter, int64, int64) error); ok {
+		r1 = returnFunc(filter, lastUsedBefore, pendingBefore)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2211,25 +2605,31 @@ type MockStore_BuildCacheListStale_Call struct {
 }
 
 // BuildCacheListStale is a helper method to define mock.On call
+//   - filter model.BuildCacheFilter
 //   - lastUsedBefore int64
 //   - pendingBefore int64
-func (_e *MockStore_Expecter) BuildCacheListStale(lastUsedBefore any, pendingBefore any) *MockStore_BuildCacheListStale_Call {
-	return &MockStore_BuildCacheListStale_Call{Call: _e.mock.On("BuildCacheListStale", lastUsedBefore, pendingBefore)}
+func (_e *MockStore_Expecter) BuildCacheListStale(filter any, lastUsedBefore any, pendingBefore any) *MockStore_BuildCacheListStale_Call {
+	return &MockStore_BuildCacheListStale_Call{Call: _e.mock.On("BuildCacheListStale", filter, lastUsedBefore, pendingBefore)}
 }
 
-func (_c *MockStore_BuildCacheListStale_Call) Run(run func(lastUsedBefore int64, pendingBefore int64)) *MockStore_BuildCacheListStale_Call {
+func (_c *MockStore_BuildCacheListStale_Call) Run(run func(filter model.BuildCacheFilter, lastUsedBefore int64, pendingBefore int64)) *MockStore_BuildCacheListStale_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 int64
+		var arg0 model.BuildCacheFilter
 		if args[0] != nil {
-			arg0 = args[0].(int64)
+			arg0 = args[0].(model.BuildCacheFilter)
 		}
 		var arg1 int64
 		if args[1] != nil {
 			arg1 = args[1].(int64)
 		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -2240,14 +2640,233 @@ func (_c *MockStore_BuildCacheListStale_Call) Return(buildCaches []*model.BuildC
 	return _c
 }
 
-func (_c *MockStore_BuildCacheListStale_Call) RunAndReturn(run func(lastUsedBefore int64, pendingBefore int64) ([]*model.BuildCache, error)) *MockStore_BuildCacheListStale_Call {
+func (_c *MockStore_BuildCacheListStale_Call) RunAndReturn(run func(filter model.BuildCacheFilter, lastUsedBefore int64, pendingBefore int64) ([]*model.BuildCache, error)) *MockStore_BuildCacheListStale_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheSettingsDelete provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheSettingsDelete(orgID int64) error {
+	ret := _mock.Called(orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheSettingsDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(orgID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_BuildCacheSettingsDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheSettingsDelete'
+type MockStore_BuildCacheSettingsDelete_Call struct {
+	*mock.Call
+}
+
+// BuildCacheSettingsDelete is a helper method to define mock.On call
+//   - orgID int64
+func (_e *MockStore_Expecter) BuildCacheSettingsDelete(orgID any) *MockStore_BuildCacheSettingsDelete_Call {
+	return &MockStore_BuildCacheSettingsDelete_Call{Call: _e.mock.On("BuildCacheSettingsDelete", orgID)}
+}
+
+func (_c *MockStore_BuildCacheSettingsDelete_Call) Run(run func(orgID int64)) *MockStore_BuildCacheSettingsDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsDelete_Call) Return(err error) *MockStore_BuildCacheSettingsDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsDelete_Call) RunAndReturn(run func(orgID int64) error) *MockStore_BuildCacheSettingsDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheSettingsGet provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheSettingsGet(orgID int64) (*model.BuildCacheSettings, error) {
+	ret := _mock.Called(orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheSettingsGet")
+	}
+
+	var r0 *model.BuildCacheSettings
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.BuildCacheSettings, error)); ok {
+		return returnFunc(orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.BuildCacheSettings); ok {
+		r0 = returnFunc(orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.BuildCacheSettings)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheSettingsGet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheSettingsGet'
+type MockStore_BuildCacheSettingsGet_Call struct {
+	*mock.Call
+}
+
+// BuildCacheSettingsGet is a helper method to define mock.On call
+//   - orgID int64
+func (_e *MockStore_Expecter) BuildCacheSettingsGet(orgID any) *MockStore_BuildCacheSettingsGet_Call {
+	return &MockStore_BuildCacheSettingsGet_Call{Call: _e.mock.On("BuildCacheSettingsGet", orgID)}
+}
+
+func (_c *MockStore_BuildCacheSettingsGet_Call) Run(run func(orgID int64)) *MockStore_BuildCacheSettingsGet_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsGet_Call) Return(buildCacheSettings *model.BuildCacheSettings, err error) *MockStore_BuildCacheSettingsGet_Call {
+	_c.Call.Return(buildCacheSettings, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsGet_Call) RunAndReturn(run func(orgID int64) (*model.BuildCacheSettings, error)) *MockStore_BuildCacheSettingsGet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheSettingsList provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheSettingsList() ([]*model.BuildCacheSettings, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheSettingsList")
+	}
+
+	var r0 []*model.BuildCacheSettings
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.BuildCacheSettings, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.BuildCacheSettings); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCacheSettings)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheSettingsList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheSettingsList'
+type MockStore_BuildCacheSettingsList_Call struct {
+	*mock.Call
+}
+
+// BuildCacheSettingsList is a helper method to define mock.On call
+func (_e *MockStore_Expecter) BuildCacheSettingsList() *MockStore_BuildCacheSettingsList_Call {
+	return &MockStore_BuildCacheSettingsList_Call{Call: _e.mock.On("BuildCacheSettingsList")}
+}
+
+func (_c *MockStore_BuildCacheSettingsList_Call) Run(run func()) *MockStore_BuildCacheSettingsList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsList_Call) Return(buildCacheSettingss []*model.BuildCacheSettings, err error) *MockStore_BuildCacheSettingsList_Call {
+	_c.Call.Return(buildCacheSettingss, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsList_Call) RunAndReturn(run func() ([]*model.BuildCacheSettings, error)) *MockStore_BuildCacheSettingsList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheSettingsSave provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheSettingsSave(buildCacheSettings *model.BuildCacheSettings) error {
+	ret := _mock.Called(buildCacheSettings)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheSettingsSave")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.BuildCacheSettings) error); ok {
+		r0 = returnFunc(buildCacheSettings)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_BuildCacheSettingsSave_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheSettingsSave'
+type MockStore_BuildCacheSettingsSave_Call struct {
+	*mock.Call
+}
+
+// BuildCacheSettingsSave is a helper method to define mock.On call
+//   - buildCacheSettings *model.BuildCacheSettings
+func (_e *MockStore_Expecter) BuildCacheSettingsSave(buildCacheSettings any) *MockStore_BuildCacheSettingsSave_Call {
+	return &MockStore_BuildCacheSettingsSave_Call{Call: _e.mock.On("BuildCacheSettingsSave", buildCacheSettings)}
+}
+
+func (_c *MockStore_BuildCacheSettingsSave_Call) Run(run func(buildCacheSettings *model.BuildCacheSettings)) *MockStore_BuildCacheSettingsSave_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.BuildCacheSettings
+		if args[0] != nil {
+			arg0 = args[0].(*model.BuildCacheSettings)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsSave_Call) Return(err error) *MockStore_BuildCacheSettingsSave_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSettingsSave_Call) RunAndReturn(run func(buildCacheSettings *model.BuildCacheSettings) error) *MockStore_BuildCacheSettingsSave_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // BuildCacheSize provides a mock function for the type MockStore
-func (_mock *MockStore) BuildCacheSize(repoID int64) (int64, error) {
-	ret := _mock.Called(repoID)
+func (_mock *MockStore) BuildCacheSize(filter model.BuildCacheFilter) (int64, error) {
+	ret := _mock.Called(filter)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BuildCacheSize")
@@ -2255,16 +2874,16 @@ func (_mock *MockStore) BuildCacheSize(repoID int64) (int64, error) {
 
 	var r0 int64
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(int64) (int64, error)); ok {
-		return returnFunc(repoID)
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter) (int64, error)); ok {
+		return returnFunc(filter)
 	}
-	if returnFunc, ok := ret.Get(0).(func(int64) int64); ok {
-		r0 = returnFunc(repoID)
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheFilter) int64); ok {
+		r0 = returnFunc(filter)
 	} else {
 		r0 = ret.Get(0).(int64)
 	}
-	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
-		r1 = returnFunc(repoID)
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheFilter) error); ok {
+		r1 = returnFunc(filter)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2277,16 +2896,16 @@ type MockStore_BuildCacheSize_Call struct {
 }
 
 // BuildCacheSize is a helper method to define mock.On call
-//   - repoID int64
-func (_e *MockStore_Expecter) BuildCacheSize(repoID any) *MockStore_BuildCacheSize_Call {
-	return &MockStore_BuildCacheSize_Call{Call: _e.mock.On("BuildCacheSize", repoID)}
+//   - filter model.BuildCacheFilter
+func (_e *MockStore_Expecter) BuildCacheSize(filter any) *MockStore_BuildCacheSize_Call {
+	return &MockStore_BuildCacheSize_Call{Call: _e.mock.On("BuildCacheSize", filter)}
 }
 
-func (_c *MockStore_BuildCacheSize_Call) Run(run func(repoID int64)) *MockStore_BuildCacheSize_Call {
+func (_c *MockStore_BuildCacheSize_Call) Run(run func(filter model.BuildCacheFilter)) *MockStore_BuildCacheSize_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 int64
+		var arg0 model.BuildCacheFilter
 		if args[0] != nil {
-			arg0 = args[0].(int64)
+			arg0 = args[0].(model.BuildCacheFilter)
 		}
 		run(
 			arg0,
@@ -2300,7 +2919,124 @@ func (_c *MockStore_BuildCacheSize_Call) Return(n int64, err error) *MockStore_B
 	return _c
 }
 
-func (_c *MockStore_BuildCacheSize_Call) RunAndReturn(run func(repoID int64) (int64, error)) *MockStore_BuildCacheSize_Call {
+func (_c *MockStore_BuildCacheSize_Call) RunAndReturn(run func(filter model.BuildCacheFilter) (int64, error)) *MockStore_BuildCacheSize_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheSizesByOrg provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheSizesByOrg() ([]*model.BuildCacheSize, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheSizesByOrg")
+	}
+
+	var r0 []*model.BuildCacheSize
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.BuildCacheSize, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.BuildCacheSize); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCacheSize)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheSizesByOrg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheSizesByOrg'
+type MockStore_BuildCacheSizesByOrg_Call struct {
+	*mock.Call
+}
+
+// BuildCacheSizesByOrg is a helper method to define mock.On call
+func (_e *MockStore_Expecter) BuildCacheSizesByOrg() *MockStore_BuildCacheSizesByOrg_Call {
+	return &MockStore_BuildCacheSizesByOrg_Call{Call: _e.mock.On("BuildCacheSizesByOrg")}
+}
+
+func (_c *MockStore_BuildCacheSizesByOrg_Call) Run(run func()) *MockStore_BuildCacheSizesByOrg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSizesByOrg_Call) Return(buildCacheSizes []*model.BuildCacheSize, err error) *MockStore_BuildCacheSizesByOrg_Call {
+	_c.Call.Return(buildCacheSizes, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSizesByOrg_Call) RunAndReturn(run func() ([]*model.BuildCacheSize, error)) *MockStore_BuildCacheSizesByOrg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheSizesByRepo provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheSizesByRepo(orgID int64) ([]*model.BuildCacheSize, error) {
+	ret := _mock.Called(orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheSizesByRepo")
+	}
+
+	var r0 []*model.BuildCacheSize
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.BuildCacheSize, error)); ok {
+		return returnFunc(orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.BuildCacheSize); ok {
+		r0 = returnFunc(orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCacheSize)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheSizesByRepo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheSizesByRepo'
+type MockStore_BuildCacheSizesByRepo_Call struct {
+	*mock.Call
+}
+
+// BuildCacheSizesByRepo is a helper method to define mock.On call
+//   - orgID int64
+func (_e *MockStore_Expecter) BuildCacheSizesByRepo(orgID any) *MockStore_BuildCacheSizesByRepo_Call {
+	return &MockStore_BuildCacheSizesByRepo_Call{Call: _e.mock.On("BuildCacheSizesByRepo", orgID)}
+}
+
+func (_c *MockStore_BuildCacheSizesByRepo_Call) Run(run func(orgID int64)) *MockStore_BuildCacheSizesByRepo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSizesByRepo_Call) Return(buildCacheSizes []*model.BuildCacheSize, err error) *MockStore_BuildCacheSizesByRepo_Call {
+	_c.Call.Return(buildCacheSizes, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheSizesByRepo_Call) RunAndReturn(run func(orgID int64) ([]*model.BuildCacheSize, error)) *MockStore_BuildCacheSizesByRepo_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2352,6 +3088,356 @@ func (_c *MockStore_BuildCacheUpdate_Call) Return(err error) *MockStore_BuildCac
 }
 
 func (_c *MockStore_BuildCacheUpdate_Call) RunAndReturn(run func(buildCache *model.BuildCache) error) *MockStore_BuildCacheUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheUsageAdd provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheUsageAdd(buildCacheUsage *model.BuildCacheUsage) error {
+	ret := _mock.Called(buildCacheUsage)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheUsageAdd")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.BuildCacheUsage) error); ok {
+		r0 = returnFunc(buildCacheUsage)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_BuildCacheUsageAdd_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheUsageAdd'
+type MockStore_BuildCacheUsageAdd_Call struct {
+	*mock.Call
+}
+
+// BuildCacheUsageAdd is a helper method to define mock.On call
+//   - buildCacheUsage *model.BuildCacheUsage
+func (_e *MockStore_Expecter) BuildCacheUsageAdd(buildCacheUsage any) *MockStore_BuildCacheUsageAdd_Call {
+	return &MockStore_BuildCacheUsageAdd_Call{Call: _e.mock.On("BuildCacheUsageAdd", buildCacheUsage)}
+}
+
+func (_c *MockStore_BuildCacheUsageAdd_Call) Run(run func(buildCacheUsage *model.BuildCacheUsage)) *MockStore_BuildCacheUsageAdd_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.BuildCacheUsage
+		if args[0] != nil {
+			arg0 = args[0].(*model.BuildCacheUsage)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageAdd_Call) Return(err error) *MockStore_BuildCacheUsageAdd_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageAdd_Call) RunAndReturn(run func(buildCacheUsage *model.BuildCacheUsage) error) *MockStore_BuildCacheUsageAdd_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheUsageByDay provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheUsageByDay(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error) {
+	ret := _mock.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheUsageByDay")
+	}
+
+	var r0 []*model.BuildCacheUsageGroup
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)); ok {
+		return returnFunc(filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) []*model.BuildCacheUsageGroup); ok {
+		r0 = returnFunc(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCacheUsageGroup)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheUsageFilter) error); ok {
+		r1 = returnFunc(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheUsageByDay_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheUsageByDay'
+type MockStore_BuildCacheUsageByDay_Call struct {
+	*mock.Call
+}
+
+// BuildCacheUsageByDay is a helper method to define mock.On call
+//   - filter model.BuildCacheUsageFilter
+func (_e *MockStore_Expecter) BuildCacheUsageByDay(filter any) *MockStore_BuildCacheUsageByDay_Call {
+	return &MockStore_BuildCacheUsageByDay_Call{Call: _e.mock.On("BuildCacheUsageByDay", filter)}
+}
+
+func (_c *MockStore_BuildCacheUsageByDay_Call) Run(run func(filter model.BuildCacheUsageFilter)) *MockStore_BuildCacheUsageByDay_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 model.BuildCacheUsageFilter
+		if args[0] != nil {
+			arg0 = args[0].(model.BuildCacheUsageFilter)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageByDay_Call) Return(buildCacheUsageGroups []*model.BuildCacheUsageGroup, err error) *MockStore_BuildCacheUsageByDay_Call {
+	_c.Call.Return(buildCacheUsageGroups, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageByDay_Call) RunAndReturn(run func(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)) *MockStore_BuildCacheUsageByDay_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheUsageByOrg provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheUsageByOrg(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error) {
+	ret := _mock.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheUsageByOrg")
+	}
+
+	var r0 []*model.BuildCacheUsageGroup
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)); ok {
+		return returnFunc(filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) []*model.BuildCacheUsageGroup); ok {
+		r0 = returnFunc(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCacheUsageGroup)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheUsageFilter) error); ok {
+		r1 = returnFunc(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheUsageByOrg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheUsageByOrg'
+type MockStore_BuildCacheUsageByOrg_Call struct {
+	*mock.Call
+}
+
+// BuildCacheUsageByOrg is a helper method to define mock.On call
+//   - filter model.BuildCacheUsageFilter
+func (_e *MockStore_Expecter) BuildCacheUsageByOrg(filter any) *MockStore_BuildCacheUsageByOrg_Call {
+	return &MockStore_BuildCacheUsageByOrg_Call{Call: _e.mock.On("BuildCacheUsageByOrg", filter)}
+}
+
+func (_c *MockStore_BuildCacheUsageByOrg_Call) Run(run func(filter model.BuildCacheUsageFilter)) *MockStore_BuildCacheUsageByOrg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 model.BuildCacheUsageFilter
+		if args[0] != nil {
+			arg0 = args[0].(model.BuildCacheUsageFilter)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageByOrg_Call) Return(buildCacheUsageGroups []*model.BuildCacheUsageGroup, err error) *MockStore_BuildCacheUsageByOrg_Call {
+	_c.Call.Return(buildCacheUsageGroups, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageByOrg_Call) RunAndReturn(run func(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)) *MockStore_BuildCacheUsageByOrg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheUsageByRepo provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheUsageByRepo(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error) {
+	ret := _mock.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheUsageByRepo")
+	}
+
+	var r0 []*model.BuildCacheUsageGroup
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)); ok {
+		return returnFunc(filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) []*model.BuildCacheUsageGroup); ok {
+		r0 = returnFunc(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.BuildCacheUsageGroup)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheUsageFilter) error); ok {
+		r1 = returnFunc(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheUsageByRepo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheUsageByRepo'
+type MockStore_BuildCacheUsageByRepo_Call struct {
+	*mock.Call
+}
+
+// BuildCacheUsageByRepo is a helper method to define mock.On call
+//   - filter model.BuildCacheUsageFilter
+func (_e *MockStore_Expecter) BuildCacheUsageByRepo(filter any) *MockStore_BuildCacheUsageByRepo_Call {
+	return &MockStore_BuildCacheUsageByRepo_Call{Call: _e.mock.On("BuildCacheUsageByRepo", filter)}
+}
+
+func (_c *MockStore_BuildCacheUsageByRepo_Call) Run(run func(filter model.BuildCacheUsageFilter)) *MockStore_BuildCacheUsageByRepo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 model.BuildCacheUsageFilter
+		if args[0] != nil {
+			arg0 = args[0].(model.BuildCacheUsageFilter)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageByRepo_Call) Return(buildCacheUsageGroups []*model.BuildCacheUsageGroup, err error) *MockStore_BuildCacheUsageByRepo_Call {
+	_c.Call.Return(buildCacheUsageGroups, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageByRepo_Call) RunAndReturn(run func(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)) *MockStore_BuildCacheUsageByRepo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheUsagePrune provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheUsagePrune(before int64) error {
+	ret := _mock.Called(before)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheUsagePrune")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(before)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_BuildCacheUsagePrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheUsagePrune'
+type MockStore_BuildCacheUsagePrune_Call struct {
+	*mock.Call
+}
+
+// BuildCacheUsagePrune is a helper method to define mock.On call
+//   - before int64
+func (_e *MockStore_Expecter) BuildCacheUsagePrune(before any) *MockStore_BuildCacheUsagePrune_Call {
+	return &MockStore_BuildCacheUsagePrune_Call{Call: _e.mock.On("BuildCacheUsagePrune", before)}
+}
+
+func (_c *MockStore_BuildCacheUsagePrune_Call) Run(run func(before int64)) *MockStore_BuildCacheUsagePrune_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsagePrune_Call) Return(err error) *MockStore_BuildCacheUsagePrune_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsagePrune_Call) RunAndReturn(run func(before int64) error) *MockStore_BuildCacheUsagePrune_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BuildCacheUsageSum provides a mock function for the type MockStore
+func (_mock *MockStore) BuildCacheUsageSum(filter model.BuildCacheUsageFilter) (*model.BuildCacheUsageCounts, error) {
+	ret := _mock.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildCacheUsageSum")
+	}
+
+	var r0 *model.BuildCacheUsageCounts
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) (*model.BuildCacheUsageCounts, error)); ok {
+		return returnFunc(filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(model.BuildCacheUsageFilter) *model.BuildCacheUsageCounts); ok {
+		r0 = returnFunc(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.BuildCacheUsageCounts)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(model.BuildCacheUsageFilter) error); ok {
+		r1 = returnFunc(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_BuildCacheUsageSum_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCacheUsageSum'
+type MockStore_BuildCacheUsageSum_Call struct {
+	*mock.Call
+}
+
+// BuildCacheUsageSum is a helper method to define mock.On call
+//   - filter model.BuildCacheUsageFilter
+func (_e *MockStore_Expecter) BuildCacheUsageSum(filter any) *MockStore_BuildCacheUsageSum_Call {
+	return &MockStore_BuildCacheUsageSum_Call{Call: _e.mock.On("BuildCacheUsageSum", filter)}
+}
+
+func (_c *MockStore_BuildCacheUsageSum_Call) Run(run func(filter model.BuildCacheUsageFilter)) *MockStore_BuildCacheUsageSum_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 model.BuildCacheUsageFilter
+		if args[0] != nil {
+			arg0 = args[0].(model.BuildCacheUsageFilter)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageSum_Call) Return(buildCacheUsageCounts *model.BuildCacheUsageCounts, err error) *MockStore_BuildCacheUsageSum_Call {
+	_c.Call.Return(buildCacheUsageCounts, err)
+	return _c
+}
+
+func (_c *MockStore_BuildCacheUsageSum_Call) RunAndReturn(run func(filter model.BuildCacheUsageFilter) (*model.BuildCacheUsageCounts, error)) *MockStore_BuildCacheUsageSum_Call {
 	_c.Call.Return(run)
 	return _c
 }

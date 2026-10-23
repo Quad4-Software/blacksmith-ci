@@ -25,6 +25,11 @@ const branchRefPrefix = "refs/heads/"
 // Access is what one running workflow may do with the cache of its repo.
 type Access struct {
 	RepoID int64
+	// OrgID owns the repo; its limits apply to the cache.
+	OrgID int64
+	// BucketID is where the cache is kept: 0 for the server's storage,
+	// otherwise the bucket the org connected.
+	BucketID int64
 	// ReadScopes are restored from, in order of preference.
 	ReadScopes []string
 	// WriteScope is the only scope saved to; empty when the workflow may only
@@ -59,7 +64,7 @@ func AccessFor(repo *model.Repo, pipeline *model.Pipeline) Access {
 	}
 	add(branchRefPrefix + repo.Branch)
 
-	access := Access{RepoID: repo.ID, ReadScopes: scopes, WriteScope: own}
+	access := Access{RepoID: repo.ID, OrgID: repo.OrgID, ReadScopes: scopes, WriteScope: own}
 	// A ref longer than the scope column cannot be stored, so it only restores.
 	if pipeline.FromFork || len(own) > MaxKeyLength {
 		access.WriteScope = ""

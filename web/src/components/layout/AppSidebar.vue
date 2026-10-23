@@ -296,6 +296,19 @@
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
+                <SidebarMenuItem v-if="canSee('admin-settings-caches')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('caches.admin.title')"
+                    :is-active="isActive('admin-settings-caches')"
+                  >
+                    <router-link :to="{ name: 'admin-settings-caches' }">
+                      <Icon name="cache" class="size-4" />
+                      <span v-if="!isCollapsed">{{ $t('caches.admin.title') }}</span>
+                    </router-link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 <SidebarMenuItem v-if="canSee('admin-settings-notifications')">
                   <SidebarMenuButton
                     as-child

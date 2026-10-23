@@ -129,6 +129,8 @@ export type IconNames =
   | 'ph:hourglass'
   | 'ph:magnifying-glass'
   | 'ph:plug'
+  | 'ph:arrow-up'
+  | 'ph:arrow-down'
   | 'ph:lightning'
   | 'ph:arrow-elbow-down-left'
   | 'ph:heartbeat'

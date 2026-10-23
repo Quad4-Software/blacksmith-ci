@@ -39,6 +39,9 @@ import (
 type CacheRestoreRequest struct {
 	Key         string   `json:"key"`
 	RestoreKeys []string `json:"restore_keys,omitempty"`
+	// Check only asks whether key is cached, as a save does before archiving;
+	// it is not counted as a restore.
+	Check bool `json:"check,omitempty"`
 }
 
 // CacheRestoreResponse is a restored entry and where to download it.
@@ -114,6 +117,8 @@ func cacheError(c *gin.Context, err error) {
 		status = http.StatusUnprocessableEntity
 	case errors.Is(err, buildcache.ErrObjectTooLarge):
 		status = http.StatusRequestEntityTooLarge
+	case errors.Is(err, buildcache.ErrEgressExceeded):
+		status = http.StatusTooManyRequests
 	default:
 		log.Error().Err(err).Msg("build cache request failed")
 	}
@@ -131,9 +136,15 @@ func PostCacheRestore(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	hit, err := service.Restore(c, access, req.Key, req.RestoreKeys)
+	hit, err := service.Restore(c, access, req.Key, req.RestoreKeys, req.Check)
 	if err != nil {
 		cacheError(c, err)
+		return
+	}
+	if req.Check {
+		// Without the entry ID, a check cannot be used to fetch the archive
+		// from the blob endpoint either.
+		c.JSON(http.StatusOK, CacheRestoreResponse{Key: hit.Entry.Key, Scope: hit.Entry.Scope, Exact: hit.Exact})
 		return
 	}
 	c.JSON(http.StatusOK, CacheRestoreResponse{
@@ -234,6 +245,24 @@ func PutCacheBlob(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// purgeOrgBuildCaches removes the caches, settings and bucket of an org about
+// to be deleted, while its repos still tell which entries are its. Failures
+// are logged like in purgeBuildCaches.
+func purgeOrgBuildCaches(ctx context.Context, org *model.Org) func() {
+	service := server.Config.Services.BuildCache
+	if service == nil {
+		return func() {}
+	}
+	if _, err := service.PurgeOrg(ctx, org.ID); err != nil {
+		log.Error().Err(err).Str("org", org.Name).Msg("could not remove build caches of deleted org")
+	}
+	return func() {
+		if err := service.OrgDeleted(ctx, org.ID); err != nil {
+			log.Error().Err(err).Str("org", org.Name).Msg("could not remove build cache settings of deleted org")
+		}
+	}
+}
+
 // purgeBuildCaches removes the caches of a deleted repo. A failure only leaves
 // archives behind that the cleanup expires later, so it is logged, not returned.
 func purgeBuildCaches(ctx context.Context, repo *model.Repo) {
@@ -257,6 +286,8 @@ type RepoCaches struct {
 	Enabled bool                `json:"enabled" doc:"whether build caching is enabled on this server"`
 	Size    int64               `json:"size" doc:"total size of the repository's caches in bytes"`
 	Entries []*model.BuildCache `json:"entries"`
+	// Usage covers the last buildcache.ReportDays days.
+	Usage model.BuildCacheUsageCounts `json:"usage" doc:"cache traffic of the last 30 days"`
 } //	@name	RepoCaches
 
 type GetRepoCachesOutput struct {
@@ -279,6 +310,11 @@ func GetRepoCaches(ctx context.Context, _ *GetRepoCachesInput) (*GetRepoCachesOu
 	for _, entry := range entries {
 		out.Body.Size += entry.Size
 	}
+	usage, err := service.RepoUsage(repo.ID)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
+	out.Body.Usage = *usage
 	return out, nil
 }
 

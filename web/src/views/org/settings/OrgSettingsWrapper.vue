@@ -17,6 +17,7 @@
       :to="{ name: 'org-settings-registries' }"
       :title="$t('registries.registries')"
     />
+    <Tab icon="cache" icon-size="1rem" :to="{ name: 'org-settings-caches' }" :title="$t('caches.org.title')" />
     <Tab
       v-if="useConfig().userRegisteredAgents"
       icon="agent"

@@ -521,6 +521,29 @@ var flags = append([]cli.Flag{
 		Value:   "10GiB",
 	},
 	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_MAX_ORG_SIZE"),
+		Name:    "cache-max-org-size",
+		Usage:   "default maximum build cache size of one user or organization (e.g. '50GiB'), admins can override it per organization; 0 means unlimited",
+		Value:   "0",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_MAX_ORG_EGRESS"),
+		Name:    "cache-max-org-egress",
+		Usage:   "default maximum bytes one user or organization restores from the build cache per calendar month (e.g. '1TiB'), admins can override it per organization; 0 means unlimited",
+		Value:   "0",
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_CACHE_ALLOW_USER_BUCKETS"),
+		Name:    "cache-allow-user-buckets",
+		Usage:   "let users and organizations keep their build caches in an S3-compatible bucket of their own; the server connects to the endpoints they enter",
+		Value:   true,
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_CACHE_ALLOW_PRIVATE_BUCKET_ENDPOINTS"),
+		Name:    "cache-allow-private-bucket-endpoints",
+		Usage:   "let the buckets users and organizations connect be on loopback, private, link-local or CGNAT addresses, e.g. a MinIO on the local network; refused by default so users cannot make the server probe internal services",
+	},
+	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_CACHE_MAX_TOTAL_SIZE"),
 		Name:    "cache-max-total-size",
 		Usage:   "maximum build cache size of all repositories (e.g. '500GiB'); 0 means unlimited",

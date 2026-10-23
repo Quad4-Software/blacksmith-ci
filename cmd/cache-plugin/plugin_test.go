@@ -58,7 +58,7 @@ func (s *cacheStore) GetPipeline(int64) (*model.Pipeline, error) {
 }
 
 func (s *cacheStore) GetRepo(int64) (*model.Repo, error) {
-	return &model.Repo{ID: 3, Branch: "main"}, nil
+	return &model.Repo{ID: 3, OrgID: 4, Branch: "main"}, nil
 }
 
 type harness struct {
@@ -74,6 +74,12 @@ type harness struct {
 // newHarness serves the cache API from a local storage, which wrap may
 // replace.
 func newHarness(t *testing.T, wrap ...func(buildcache.Storage) buildcache.Storage) *harness {
+	t.Helper()
+	return newHarnessWith(t, buildcache.Config{}, wrap...)
+}
+
+// newHarnessWith is newHarness with the limits of config.
+func newHarnessWith(t *testing.T, config buildcache.Config, wrap ...func(buildcache.Storage) buildcache.Storage) *harness {
 	t.Helper()
 
 	engine, err := datastore.NewEngine(&store.Opts{Driver: "sqlite3", Config: filepath.Join(t.TempDir(), "crow.sqlite")})
@@ -102,12 +108,11 @@ func newHarness(t *testing.T, wrap ...func(buildcache.Storage) buildcache.Storag
 	srv := httptest.NewServer(router)
 	t.Cleanup(srv.Close)
 
-	service := buildcache.New(s, storage, buildcache.Config{
-		BlobURL:    srv.URL + "/api/v1/cache/blobs",
-		Secret:     "secret",
-		PendingTTL: time.Hour,
-		URLExpiry:  time.Hour,
-	})
+	config.BlobURL = srv.URL + "/api/v1/cache/blobs"
+	config.Secret = "secret"
+	config.PendingTTL = time.Hour
+	config.URLExpiry = time.Hour
+	service := buildcache.New(s, storage, config)
 	previous := server.Config.Services.BuildCache
 	server.Config.Services.BuildCache = service
 	t.Cleanup(func() { server.Config.Services.BuildCache = previous })
@@ -234,4 +239,22 @@ func TestKeyRenderFailureIsAWarning(t *testing.T) {
 	out := h.run(t, "restore", t.TempDir(), cacheSpec{Key: `{{ checksum "nope.lock" }}`, Paths: []string{"a"}})
 	assert.True(t, strings.HasPrefix(out, "warning: "), out)
 	assert.Contains(t, out, "match no file")
+}
+
+func TestEgressLimitSkipsRestore(t *testing.T) {
+	h := newHarnessWith(t, buildcache.Config{MaxOrgEgress: 1})
+	workspace := t.TempDir()
+	writeFile(t, workspace, "deps/a", "content")
+	spec := cacheSpec{Key: "deps", Paths: []string{"deps"}}
+
+	out := h.run(t, "save", workspace, spec)
+	assert.Contains(t, out, "saved deps")
+	usage, err := h.store.BuildCacheUsageSum(model.BuildCacheUsageFilter{RepoID: 3})
+	require.NoError(t, err)
+	assert.Zero(t, usage.Misses, "the existence check of a save is not a miss")
+	assert.EqualValues(t, 1, usage.Saves)
+
+	out = h.run(t, "restore", t.TempDir(), spec)
+	assert.Contains(t, out, "not restoring deps: the monthly cache download limit is reached")
+	assert.NotContains(t, out, "warning")
 }

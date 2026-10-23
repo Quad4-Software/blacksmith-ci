@@ -354,6 +354,28 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
 	}, api.DeleteOrgRegistry)
 
+	// Org build caches
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org-caches", Method: http.MethodGet, Path: "/orgs/{org_id}/caches",
+		Summary: "Get the build caches of an organization", Tags: []string{"Organization Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.GetOrgCaches)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-org-caches", Method: http.MethodDelete, Path: "/orgs/{org_id}/caches",
+		Summary: "Delete all build caches of an organization", Tags: []string{"Organization Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.DeleteOrgCaches)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "put-org-cache-bucket", Method: http.MethodPut, Path: "/orgs/{org_id}/caches/bucket",
+		Summary: "Connect or change the cache bucket of an organization", Tags: []string{"Organization Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.PutOrgCacheBucket)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-org-cache-bucket", Method: http.MethodDelete, Path: "/orgs/{org_id}/caches/bucket",
+		Summary: "Disconnect the cache bucket of an organization", Tags: []string{"Organization Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.DeleteOrgCacheBucket)
+
 	// Org agents
 	if !server.Config.Agent.DisableUserRegisteredAgentRegistration {
 		huma.Register(humaAPI, huma.Operation{
@@ -1088,6 +1110,33 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Run maintenance now", Tags: []string{"Admin Maintenance"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceWrite)},
 	}, api.RunMaintenanceNow)
+
+	// ── Admin Caches ─────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-admin-caches", Method: http.MethodGet, Path: "/admin/caches",
+		Summary: "Get the build caches of all organizations", Tags: []string{"Admin Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceRead)},
+	}, api.GetAdminCaches)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-admin-cache-cleanup", Method: http.MethodPost, Path: "/admin/caches/cleanup",
+		Summary: "Remove expired build caches and enforce size limits now", Tags: []string{"Admin Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceWrite)},
+	}, api.PostAdminCacheCleanup)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-admin-cache-org", Method: http.MethodGet, Path: "/admin/caches/orgs/{org_id}",
+		Summary: "Get the build caches of an organization", Tags: []string{"Admin Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceRead)},
+	}, api.GetAdminCacheOrg)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "put-admin-cache-org", Method: http.MethodPut, Path: "/admin/caches/orgs/{org_id}",
+		Summary: "Set the build cache limits of an organization", Tags: []string{"Admin Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceWrite)},
+	}, api.PutAdminCacheOrg)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-admin-cache-org", Method: http.MethodDelete, Path: "/admin/caches/orgs/{org_id}",
+		Summary: "Delete all build caches of an organization", Tags: []string{"Admin Caches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceWrite)},
+	}, api.DeleteAdminCacheOrg)
 
 	// ── Admin Notifications ──────────────────────────────────────────────
 	huma.Register(humaAPI, huma.Operation{

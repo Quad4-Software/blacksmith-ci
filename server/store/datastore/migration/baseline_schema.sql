@@ -60,7 +60,51 @@ CREATE TABLE IF NOT EXISTS build_caches (
     committed BOOLEAN NOT NULL DEFAULT false,
     created INTEGER NOT NULL DEFAULT 0,
     last_used INTEGER NOT NULL DEFAULT 0,
+    bucket_id INTEGER NOT NULL DEFAULT 0,
     UNIQUE(repo_id, scope, cache_key)
+);
+
+CREATE TABLE IF NOT EXISTS build_cache_settings (
+    org_id INTEGER PRIMARY KEY,
+    max_size INTEGER NOT NULL DEFAULT 0,
+    max_egress INTEGER NOT NULL DEFAULT 0,
+    ttl INTEGER NOT NULL DEFAULT 0,
+    updated INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS build_cache_buckets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    org_id INTEGER NOT NULL,
+    endpoint VARCHAR(255) NOT NULL,
+    bucket VARCHAR(255) NOT NULL,
+    region VARCHAR(255),
+    prefix VARCHAR(255),
+    access_key VARCHAR(255),
+    secret_key TEXT,
+    use_ssl BOOLEAN NOT NULL DEFAULT true,
+    path_style BOOLEAN NOT NULL DEFAULT false,
+    max_size INTEGER NOT NULL DEFAULT 0,
+    max_egress INTEGER NOT NULL DEFAULT 0,
+    ttl INTEGER NOT NULL DEFAULT 0,
+    created INTEGER NOT NULL DEFAULT 0,
+    updated INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(org_id)
+);
+
+CREATE TABLE IF NOT EXISTS build_cache_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id INTEGER NOT NULL,
+    org_id INTEGER NOT NULL,
+    bucket_id INTEGER NOT NULL DEFAULT 0,
+    day INTEGER NOT NULL,
+    hits INTEGER NOT NULL DEFAULT 0,
+    partial_hits INTEGER NOT NULL DEFAULT 0,
+    misses INTEGER NOT NULL DEFAULT 0,
+    denied INTEGER NOT NULL DEFAULT 0,
+    saves INTEGER NOT NULL DEFAULT 0,
+    egress INTEGER NOT NULL DEFAULT 0,
+    ingress INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(repo_id, bucket_id, day)
 );
 
 CREATE TABLE IF NOT EXISTS repos (
@@ -570,6 +614,7 @@ CREATE INDEX IF NOT EXISTS idx_user_forges_forge_id ON user_forges (forge_id);
 CREATE INDEX IF NOT EXISTS idx_user_identities_user_id ON user_identities (user_id);
 
 CREATE INDEX IF NOT EXISTS idx_build_caches_last_used ON build_caches (last_used);
+CREATE INDEX IF NOT EXISTS idx_build_cache_usage_org_day ON build_cache_usage (org_id, day);
 
 CREATE INDEX IF NOT EXISTS idx_access_tokens_user_id ON access_tokens (user_id);
 CREATE INDEX IF NOT EXISTS idx_access_tokens_org_id ON access_tokens (org_id);

@@ -12,6 +12,7 @@ export const adminPages: { route: string; permissions: Permission[] }[] = [
   { route: 'admin-settings-repos', permissions: ['repos:read'] },
   { route: 'admin-settings-entities', permissions: ['users:read', 'orgs:read'] },
   { route: 'admin-settings-queue', permissions: ['queue:read'] },
+  { route: 'admin-settings-caches', permissions: ['maintenance:read'] },
   { route: 'admin-settings-notifications', permissions: ['server:admin'] },
 ];
 

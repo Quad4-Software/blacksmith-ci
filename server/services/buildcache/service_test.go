@@ -20,10 +20,8 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -31,151 +29,57 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/store/datastore"
 	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
-// memStore is an in-memory Store for the service tests.
-type memStore struct {
-	mu        sync.Mutex
-	nextID    int64
-	entries   map[int64]*model.BuildCache
+// testStore is a migrated in-memory database whose workflow, pipeline and
+// repo lookups can be overridden, for the token tests.
+type testStore struct {
+	store.Store
 	workflows map[int64]*model.Workflow
 	pipelines map[int64]*model.Pipeline
 	repos     map[int64]*model.Repo
 }
 
-func newMemStore() *memStore {
-	return &memStore{
-		entries:   map[int64]*model.BuildCache{},
+func newTestStore(t *testing.T) *testStore {
+	t.Helper()
+	s, err := datastore.NewEngine(&store.Opts{Driver: "sqlite3", Config: ":memory:"})
+	require.NoError(t, err)
+	require.NoError(t, s.Migrate(context.Background(), false))
+	t.Cleanup(func() { _ = s.Close() })
+	return &testStore{
+		Store:     s,
 		workflows: map[int64]*model.Workflow{},
 		pipelines: map[int64]*model.Pipeline{},
 		repos:     map[int64]*model.Repo{},
 	}
 }
 
-func (m *memStore) BuildCacheCreate(entry *model.BuildCache) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for _, e := range m.entries {
-		if e.RepoID == entry.RepoID && e.Scope == entry.Scope && e.Key == entry.Key {
-			return types.ErrConflict
-		}
-	}
-	m.nextID++
-	entry.ID = m.nextID
-	copied := *entry
-	m.entries[entry.ID] = &copied
-	return nil
-}
-
-func (m *memStore) BuildCacheGet(id int64) (*model.BuildCache, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if e, ok := m.entries[id]; ok {
-		copied := *e
-		return &copied, nil
-	}
-	return nil, types.RecordNotExist
-}
-
-func (m *memStore) filter(keep func(*model.BuildCache) bool) []*model.BuildCache {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	var out []*model.BuildCache
-	for _, e := range m.entries {
-		if keep(e) {
-			copied := *e
-			out = append(out, &copied)
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
-	return out
-}
-
-func (m *memStore) BuildCacheFind(repoID int64, scope, key string) (*model.BuildCache, error) {
-	found := m.filter(func(e *model.BuildCache) bool { return e.RepoID == repoID && e.Scope == scope && e.Key == key })
-	if len(found) == 0 {
-		return nil, types.RecordNotExist
-	}
-	return found[0], nil
-}
-
-func (m *memStore) BuildCacheFindPrefix(repoID int64, scope, prefix string) (*model.BuildCache, error) {
-	found := m.filter(func(e *model.BuildCache) bool {
-		return e.RepoID == repoID && e.Scope == scope && e.Committed && strings.HasPrefix(e.Key, prefix)
-	})
-	if len(found) == 0 {
-		return nil, types.RecordNotExist
-	}
-	sort.SliceStable(found, func(i, j int) bool { return found[i].Created > found[j].Created })
-	return found[0], nil
-}
-
-func (m *memStore) BuildCacheList(repoID int64) ([]*model.BuildCache, error) {
-	return m.filter(func(e *model.BuildCache) bool { return e.RepoID == repoID }), nil
-}
-
-func (m *memStore) BuildCacheListLRU(repoID int64, limit int) ([]*model.BuildCache, error) {
-	found := m.filter(func(e *model.BuildCache) bool { return e.Committed && (repoID == 0 || e.RepoID == repoID) })
-	sort.SliceStable(found, func(i, j int) bool { return found[i].LastUsed < found[j].LastUsed })
-	return found[:min(limit, len(found))], nil
-}
-
-func (m *memStore) BuildCacheListStale(lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error) {
-	return m.filter(func(e *model.BuildCache) bool {
-		return (e.Committed && e.LastUsed < lastUsedBefore) || (!e.Committed && e.Created < pendingBefore)
-	}), nil
-}
-
-func (m *memStore) BuildCacheSize(repoID int64) (int64, error) {
-	var total int64
-	for _, e := range m.filter(func(e *model.BuildCache) bool { return repoID == 0 || e.RepoID == repoID }) {
-		total += e.Size
-	}
-	return total, nil
-}
-
-func (m *memStore) BuildCacheUpdate(entry *model.BuildCache) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	copied := *entry
-	m.entries[entry.ID] = &copied
-	return nil
-}
-
-func (m *memStore) BuildCacheDelete(id int64) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if _, ok := m.entries[id]; !ok {
-		return types.RecordNotExist
-	}
-	delete(m.entries, id)
-	return nil
-}
-
-func (m *memStore) WorkflowLoad(id int64) (*model.Workflow, error) {
+func (m *testStore) WorkflowLoad(id int64) (*model.Workflow, error) {
 	if w, ok := m.workflows[id]; ok {
 		return w, nil
 	}
 	return nil, types.RecordNotExist
 }
 
-func (m *memStore) GetPipeline(id int64) (*model.Pipeline, error) {
+func (m *testStore) GetPipeline(id int64) (*model.Pipeline, error) {
 	if p, ok := m.pipelines[id]; ok {
 		return p, nil
 	}
 	return nil, types.RecordNotExist
 }
 
-func (m *memStore) GetRepo(id int64) (*model.Repo, error) {
+func (m *testStore) GetRepo(id int64) (*model.Repo, error) {
 	if r, ok := m.repos[id]; ok {
 		return r, nil
 	}
-	return nil, types.RecordNotExist
+	return m.Store.GetRepo(id)
 }
 
 type fixture struct {
-	store   *memStore
+	store   *testStore
 	service *Service
 	now     time.Time
 	// root holds the archives.
@@ -192,7 +96,7 @@ func newFixture(t *testing.T, config Config) *fixture {
 	if config.PendingTTL == 0 {
 		config.PendingTTL = time.Hour
 	}
-	f := &fixture{store: newMemStore(), now: time.Now().Truncate(time.Second), root: root}
+	f := &fixture{store: newTestStore(t), now: time.Now().Truncate(time.Second), root: root}
 	f.service = New(f.store, storage, config)
 	f.service.now = func() time.Time { return f.now }
 	return f
@@ -215,9 +119,9 @@ func (f *fixture) save(ctx context.Context, t *testing.T, access Access, key, da
 	return entry
 }
 
-func (f *fixture) read(t *testing.T, access Access, id int64) string {
+func (f *fixture) read(ctx context.Context, t *testing.T, access Access, id int64) string {
 	t.Helper()
-	r, _, err := f.service.OpenBlob(context.Background(), access, id)
+	r, _, err := f.service.OpenBlob(ctx, access, id)
 	require.NoError(t, err)
 	defer r.Close()
 	data, err := io.ReadAll(r)
@@ -229,7 +133,7 @@ func TestRestoreRoundTrip(t *testing.T) {
 	f := newFixture(t, Config{})
 	ctx := context.Background()
 
-	_, err := f.service.Restore(ctx, mainAccess, "go-1", []string{"go-"})
+	_, err := f.service.Restore(ctx, mainAccess, "go-1", []string{"go-"}, false)
 	assert.ErrorIs(t, err, ErrNotFound)
 
 	saved := f.save(ctx, t, mainAccess, "go-1", "archive")
@@ -237,11 +141,11 @@ func TestRestoreRoundTrip(t *testing.T) {
 	assert.EqualValues(t, len("archive"), saved.Size)
 
 	f.now = f.now.Add(time.Minute)
-	hit, err := f.service.Restore(ctx, mainAccess, "go-1", nil)
+	hit, err := f.service.Restore(ctx, mainAccess, "go-1", nil, false)
 	require.NoError(t, err)
 	assert.True(t, hit.Exact)
 	assert.Equal(t, f.now.Unix(), hit.Entry.LastUsed)
-	assert.Equal(t, "archive", f.read(t, mainAccess, hit.Entry.ID))
+	assert.Equal(t, "archive", f.read(ctx, t, mainAccess, hit.Entry.ID))
 }
 
 func TestRestorePrefersExactThenOwnScope(t *testing.T) {
@@ -255,19 +159,19 @@ func TestRestorePrefersExactThenOwnScope(t *testing.T) {
 	f.save(ctx, t, featureAccess, "go-3", "feature-3")
 
 	// An exact match in the default branch wins over a prefix match in the own scope.
-	hit, err := f.service.Restore(ctx, featureAccess, "go-1", []string{"go-"})
+	hit, err := f.service.Restore(ctx, featureAccess, "go-1", []string{"go-"}, false)
 	require.NoError(t, err)
 	assert.True(t, hit.Exact)
 	assert.Equal(t, "refs/heads/main", hit.Entry.Scope)
 
 	// Without an exact match the own scope is searched first.
-	hit, err = f.service.Restore(ctx, featureAccess, "go-9", []string{"go-"})
+	hit, err = f.service.Restore(ctx, featureAccess, "go-9", []string{"go-"}, false)
 	require.NoError(t, err)
 	assert.False(t, hit.Exact)
 	assert.Equal(t, "go-3", hit.Entry.Key)
 
 	// The default branch never sees feature branch caches.
-	hit, err = f.service.Restore(ctx, mainAccess, "go-9", []string{"go-"})
+	hit, err = f.service.Restore(ctx, mainAccess, "go-9", []string{"go-"}, false)
 	require.NoError(t, err)
 	assert.Equal(t, "go-2", hit.Entry.Key, "newest main entry")
 	_, _, err = f.service.OpenBlob(ctx, mainAccess, f.mustFind(t, "refs/heads/feature", "go-3").ID)
@@ -284,16 +188,16 @@ func TestRestoreSkipsEntriesWithoutArchive(t *testing.T) {
 	require.NoError(t, os.Remove(filepath.Join(f.root, filepath.FromSlash(objectName(newer)))))
 
 	// The prefix match falls back to the older entry and drops the broken one.
-	hit, err := f.service.Restore(ctx, mainAccess, "go-9", []string{"go-"})
+	hit, err := f.service.Restore(ctx, mainAccess, "go-9", []string{"go-"}, false)
 	require.NoError(t, err)
 	assert.Equal(t, older.ID, hit.Entry.ID)
 	_, err = f.store.BuildCacheGet(newer.ID)
 	assert.ErrorIs(t, err, types.RecordNotExist)
 
 	// The key misses and can be saved again.
-	_, err = f.service.Restore(ctx, mainAccess, "go-2", nil)
+	_, err = f.service.Restore(ctx, mainAccess, "go-2", nil, false)
 	assert.ErrorIs(t, err, ErrNotFound)
-	assert.Equal(t, "newer", f.read(t, mainAccess, f.save(ctx, t, mainAccess, "go-2", "newer").ID))
+	assert.Equal(t, "newer", f.read(ctx, t, mainAccess, f.save(ctx, t, mainAccess, "go-2", "newer").ID))
 }
 
 func (f *fixture) mustFind(t *testing.T, scope, key string) *model.BuildCache {
@@ -369,7 +273,7 @@ func TestQuotaEvictsLeastRecentlyUsed(t *testing.T) {
 	f.now = f.now.Add(time.Minute)
 
 	// Restoring a makes b the least recently used entry.
-	_, err := f.service.Restore(ctx, mainAccess, "a", nil)
+	_, err := f.service.Restore(ctx, mainAccess, "a", nil, false)
 	require.NoError(t, err)
 	f.now = f.now.Add(time.Minute)
 
@@ -404,7 +308,8 @@ func TestCleanup(t *testing.T) {
 	require.NoError(t, err)
 
 	f.now = f.now.Add(2 * time.Hour)
-	require.NoError(t, f.service.Cleanup(ctx))
+	_, err = f.service.Cleanup(ctx)
+	require.NoError(t, err)
 
 	remaining, err := f.service.List(1)
 	require.NoError(t, err)

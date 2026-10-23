@@ -263,3 +263,48 @@ func TestCompositeStore_PassthroughOperations(t *testing.T) {
 		assert.Equal(t, int64(42), count)
 	})
 }
+
+func TestCompositeStore_BuildCacheBucketSecret(t *testing.T) {
+	composite, mockStore, mockEncryption := setupCompositeStore(t)
+
+	t.Run("create stores the secret encrypted and keeps the plaintext for the caller", func(t *testing.T) {
+		bucket := &model.BuildCacheBucket{OrgID: 7, Endpoint: "s3.example.com", Bucket: "cache", SecretKey: "plain"}
+		mockEncryption.On("Encrypt", "plain", "build-cache-bucket-7").Return("cipher", nil).Once()
+		mockStore.On("BuildCacheBucketCreate", mock.MatchedBy(func(b *model.BuildCacheBucket) bool {
+			b.ID = 3
+			return b.SecretKey == "cipher"
+		})).Return(nil).Once()
+
+		require.NoError(t, composite.BuildCacheBucketCreate(bucket))
+		assert.Equal(t, int64(3), bucket.ID)
+		assert.Equal(t, "plain", bucket.SecretKey)
+	})
+
+	t.Run("find decrypts", func(t *testing.T) {
+		mockStore.On("BuildCacheBucketFind", int64(7)).Return(&model.BuildCacheBucket{ID: 3, OrgID: 7, SecretKey: "cipher"}, nil).Once()
+		mockEncryption.On("Decrypt", "cipher", "build-cache-bucket-7").Return("plain", nil).Once()
+
+		bucket, err := composite.BuildCacheBucketFind(7)
+		require.NoError(t, err)
+		assert.Equal(t, "plain", bucket.SecretKey)
+	})
+
+	t.Run("an empty secret is not encrypted", func(t *testing.T) {
+		mockStore.On("BuildCacheBucketUpdate", mock.MatchedBy(func(b *model.BuildCacheBucket) bool {
+			return b.SecretKey == ""
+		})).Return(nil).Once()
+		require.NoError(t, composite.BuildCacheBucketUpdate(&model.BuildCacheBucket{ID: 3, OrgID: 7}))
+	})
+
+	t.Run("migrating re-encrypts with the new service", func(t *testing.T) {
+		next := encryption_mocks.NewMockEncryptionService(t)
+		mockStore.On("BuildCacheBucketList").Return([]*model.BuildCacheBucket{{ID: 3, OrgID: 7, SecretKey: "cipher"}}, nil).Once()
+		mockEncryption.On("Decrypt", "cipher", "build-cache-bucket-7").Return("plain", nil).Once()
+		next.On("Encrypt", "plain", "build-cache-bucket-7").Return("cipher2", nil).Once()
+		mockStore.On("BuildCacheBucketUpdate", mock.MatchedBy(func(b *model.BuildCacheBucket) bool {
+			return b.SecretKey == "cipher2"
+		})).Return(nil).Once()
+
+		require.NoError(t, composite.reencryptBuckets(mockEncryption, next))
+	})
+}

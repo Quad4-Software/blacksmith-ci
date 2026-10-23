@@ -87,12 +87,50 @@ type Store interface {
 	BuildCacheFindPrefix(repoID int64, scope, prefix string) (*model.BuildCache, error)
 	// BuildCacheList lists all cache entries of a repo, most recently used first.
 	BuildCacheList(repoID int64) ([]*model.BuildCache, error)
-	// BuildCacheListLRU lists entries least recently used first; repoID 0 lists entries of all repos.
-	BuildCacheListLRU(repoID int64, limit int) ([]*model.BuildCache, error)
-	// BuildCacheListStale lists committed entries last used before lastUsedBefore and pending entries created before pendingBefore.
-	BuildCacheListStale(lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error)
-	// BuildCacheSize sums the size of all entries, pending or committed; repoID 0 sums all repos.
-	BuildCacheSize(repoID int64) (int64, error)
+	// BuildCacheListFilter lists the entries matching filter, oldest first.
+	BuildCacheListFilter(filter model.BuildCacheFilter) ([]*model.BuildCache, error)
+	// BuildCacheListLRU lists committed entries matching filter, least recently used first.
+	BuildCacheListLRU(filter model.BuildCacheFilter, limit int) ([]*model.BuildCache, error)
+	// BuildCacheListStale lists entries matching filter that are committed and last used before lastUsedBefore, or pending and created before pendingBefore.
+	BuildCacheListStale(filter model.BuildCacheFilter, lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error)
+	// BuildCacheSize sums the size of the entries matching filter, pending or committed.
+	BuildCacheSize(filter model.BuildCacheFilter) (int64, error)
+	// BuildCacheSizesByOrg sums the entries per org and per storage kind (server or own bucket).
+	BuildCacheSizesByOrg() ([]*model.BuildCacheSize, error)
+	// BuildCacheSizesByRepo sums the entries of an org's repos per repo and storage kind.
+	BuildCacheSizesByRepo(orgID int64) ([]*model.BuildCacheSize, error)
+	// BuildCacheSettingsGet gets the cache settings of an org; types.RecordNotExist when it has none.
+	BuildCacheSettingsGet(orgID int64) (*model.BuildCacheSettings, error)
+	// BuildCacheSettingsList lists the cache settings of all orgs.
+	BuildCacheSettingsList() ([]*model.BuildCacheSettings, error)
+	// BuildCacheSettingsSave creates or replaces the cache settings of an org.
+	BuildCacheSettingsSave(*model.BuildCacheSettings) error
+	// BuildCacheSettingsDelete removes the cache settings of an org.
+	BuildCacheSettingsDelete(orgID int64) error
+	// BuildCacheBucketGet gets a connected bucket by ID.
+	BuildCacheBucketGet(id int64) (*model.BuildCacheBucket, error)
+	// BuildCacheBucketFind gets the bucket an org connected; types.RecordNotExist when it has none.
+	BuildCacheBucketFind(orgID int64) (*model.BuildCacheBucket, error)
+	// BuildCacheBucketList lists all connected buckets.
+	BuildCacheBucketList() ([]*model.BuildCacheBucket, error)
+	// BuildCacheBucketCreate connects a bucket; types.ErrConflict when the org already has one.
+	BuildCacheBucketCreate(*model.BuildCacheBucket) error
+	// BuildCacheBucketUpdate updates a connected bucket.
+	BuildCacheBucketUpdate(*model.BuildCacheBucket) error
+	// BuildCacheBucketDelete disconnects a bucket.
+	BuildCacheBucketDelete(id int64) error
+	// BuildCacheUsageAdd adds counts to the usage row of its repo, bucket and day.
+	BuildCacheUsageAdd(*model.BuildCacheUsage) error
+	// BuildCacheUsageSum sums the usage matching filter.
+	BuildCacheUsageSum(filter model.BuildCacheUsageFilter) (*model.BuildCacheUsageCounts, error)
+	// BuildCacheUsageByOrg sums the usage matching filter per org and storage kind.
+	BuildCacheUsageByOrg(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)
+	// BuildCacheUsageByRepo sums the usage matching filter per repo and storage kind.
+	BuildCacheUsageByRepo(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)
+	// BuildCacheUsageByDay sums the usage matching filter per day, oldest first.
+	BuildCacheUsageByDay(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error)
+	// BuildCacheUsagePrune removes usage rows of days before before.
+	BuildCacheUsagePrune(before int64) error
 	// BuildCacheUpdate updates a cache entry.
 	BuildCacheUpdate(*model.BuildCache) error
 	// BuildCacheDelete deletes a cache entry.

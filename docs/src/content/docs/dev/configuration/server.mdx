@@ -765,6 +765,10 @@ CROW_CACHE_S3_PATH_STYLE=true
 | `CROW_CACHE_BACKEND` | none | `local` or `s3`; empty disables caching |
 | `CROW_CACHE_LOCAL_PATH` | `/var/lib/crow/cache` | Directory for the `local` backend |
 | `CROW_CACHE_MAX_REPO_SIZE` | `10GiB` | Size limit per repository, `0` for unlimited |
+| `CROW_CACHE_MAX_ORG_SIZE` | `0` | Default size limit per user or organization, `0` for unlimited |
+| `CROW_CACHE_MAX_ORG_EGRESS` | `0` | Default restored bytes per user or organization and month, `0` for unlimited |
+| `CROW_CACHE_ALLOW_USER_BUCKETS` | `true` | Let users and organizations connect their own S3 bucket |
+| `CROW_CACHE_ALLOW_PRIVATE_BUCKET_ENDPOINTS` | `false` | Allow those buckets on internal addresses |
 | `CROW_CACHE_MAX_TOTAL_SIZE` | `0` | Size limit across all repositories, `0` for unlimited |
 | `CROW_CACHE_TTL` | `168h` | Remove caches not restored for this long |
 

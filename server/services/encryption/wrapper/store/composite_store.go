@@ -17,6 +17,8 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/rs/zerolog/log"
 
@@ -103,6 +105,9 @@ func (c *CompositeEncryptedStore) EnableEncryption() error {
 	if err := c.userForgeStore.EnableEncryption(); err != nil {
 		return err
 	}
+	if err := c.reencryptBuckets(nil, c.encryption); err != nil {
+		return err
+	}
 
 	log.Info().Msg("All sensitive data encrypted successfully")
 	return nil
@@ -125,6 +130,9 @@ func (c *CompositeEncryptedStore) MigrateEncryption(newEncryption types.Encrypti
 		return err
 	}
 	if err := c.userForgeStore.MigrateEncryption(newEncryption); err != nil {
+		return err
+	}
+	if err := c.reencryptBuckets(c.encryption, newEncryption); err != nil {
 		return err
 	}
 
@@ -1179,7 +1187,8 @@ func (c *CompositeEncryptedStore) ApprovedPullRequestDelete(repoID int64, ref st
 	return c.baseStore.ApprovedPullRequestDelete(repoID, ref)
 }
 
-// Build caches hold no secrets and pass through unchanged.
+// Build cache entries, settings and usage hold no secrets and pass through
+// unchanged; the secret key of a bucket an org connected is encrypted.
 
 func (c *CompositeEncryptedStore) BuildCacheCreate(entry *model.BuildCache) error {
 	return c.baseStore.BuildCacheCreate(entry)
@@ -1201,16 +1210,174 @@ func (c *CompositeEncryptedStore) BuildCacheList(repoID int64) ([]*model.BuildCa
 	return c.baseStore.BuildCacheList(repoID)
 }
 
-func (c *CompositeEncryptedStore) BuildCacheListLRU(repoID int64, limit int) ([]*model.BuildCache, error) {
-	return c.baseStore.BuildCacheListLRU(repoID, limit)
+func (c *CompositeEncryptedStore) BuildCacheListFilter(filter model.BuildCacheFilter) ([]*model.BuildCache, error) {
+	return c.baseStore.BuildCacheListFilter(filter)
 }
 
-func (c *CompositeEncryptedStore) BuildCacheListStale(lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error) {
-	return c.baseStore.BuildCacheListStale(lastUsedBefore, pendingBefore)
+func (c *CompositeEncryptedStore) BuildCacheListLRU(filter model.BuildCacheFilter, limit int) ([]*model.BuildCache, error) {
+	return c.baseStore.BuildCacheListLRU(filter, limit)
 }
 
-func (c *CompositeEncryptedStore) BuildCacheSize(repoID int64) (int64, error) {
-	return c.baseStore.BuildCacheSize(repoID)
+func (c *CompositeEncryptedStore) BuildCacheListStale(filter model.BuildCacheFilter, lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error) {
+	return c.baseStore.BuildCacheListStale(filter, lastUsedBefore, pendingBefore)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSize(filter model.BuildCacheFilter) (int64, error) {
+	return c.baseStore.BuildCacheSize(filter)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSizesByOrg() ([]*model.BuildCacheSize, error) {
+	return c.baseStore.BuildCacheSizesByOrg()
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSizesByRepo(orgID int64) ([]*model.BuildCacheSize, error) {
+	return c.baseStore.BuildCacheSizesByRepo(orgID)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSettingsGet(orgID int64) (*model.BuildCacheSettings, error) {
+	return c.baseStore.BuildCacheSettingsGet(orgID)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSettingsList() ([]*model.BuildCacheSettings, error) {
+	return c.baseStore.BuildCacheSettingsList()
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSettingsSave(settings *model.BuildCacheSettings) error {
+	return c.baseStore.BuildCacheSettingsSave(settings)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSettingsDelete(orgID int64) error {
+	return c.baseStore.BuildCacheSettingsDelete(orgID)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheBucketGet(id int64) (*model.BuildCacheBucket, error) {
+	bucket, err := c.baseStore.BuildCacheBucketGet(id)
+	if err != nil {
+		return nil, err
+	}
+	return bucket, decryptBucket(c.encryption, bucket)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheBucketFind(orgID int64) (*model.BuildCacheBucket, error) {
+	bucket, err := c.baseStore.BuildCacheBucketFind(orgID)
+	if err != nil {
+		return nil, err
+	}
+	return bucket, decryptBucket(c.encryption, bucket)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheBucketList() ([]*model.BuildCacheBucket, error) {
+	buckets, err := c.baseStore.BuildCacheBucketList()
+	if err != nil {
+		return nil, err
+	}
+	for _, bucket := range buckets {
+		if err := decryptBucket(c.encryption, bucket); err != nil {
+			return nil, err
+		}
+	}
+	return buckets, nil
+}
+
+// BuildCacheBucketCreate stores an encrypted copy, so the caller keeps the
+// plaintext secret.
+func (c *CompositeEncryptedStore) BuildCacheBucketCreate(bucket *model.BuildCacheBucket) error {
+	stored := *bucket
+	if err := encryptBucket(c.encryption, &stored); err != nil {
+		return err
+	}
+	if err := c.baseStore.BuildCacheBucketCreate(&stored); err != nil {
+		return err
+	}
+	bucket.ID = stored.ID
+	return nil
+}
+
+func (c *CompositeEncryptedStore) BuildCacheBucketUpdate(bucket *model.BuildCacheBucket) error {
+	stored := *bucket
+	if err := encryptBucket(c.encryption, &stored); err != nil {
+		return err
+	}
+	return c.baseStore.BuildCacheBucketUpdate(&stored)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheBucketDelete(id int64) error {
+	return c.baseStore.BuildCacheBucketDelete(id)
+}
+
+// bucketAssociatedData binds an encrypted secret key to its org, which has at
+// most one bucket and is known before the bucket is stored.
+func bucketAssociatedData(bucket *model.BuildCacheBucket) string {
+	return "build-cache-bucket-" + strconv.FormatInt(bucket.OrgID, 10)
+}
+
+func encryptBucket(service types.EncryptionService, bucket *model.BuildCacheBucket) error {
+	if service == nil || bucket.SecretKey == "" {
+		return nil
+	}
+	encrypted, err := service.Encrypt(bucket.SecretKey, bucketAssociatedData(bucket))
+	if err != nil {
+		return fmt.Errorf("failed to encrypt the cache bucket secret of org %d: %w", bucket.OrgID, err)
+	}
+	bucket.SecretKey = encrypted
+	return nil
+}
+
+func decryptBucket(service types.EncryptionService, bucket *model.BuildCacheBucket) error {
+	if service == nil || bucket.SecretKey == "" {
+		return nil
+	}
+	decrypted, err := service.Decrypt(bucket.SecretKey, bucketAssociatedData(bucket))
+	if err != nil {
+		return fmt.Errorf("failed to decrypt the cache bucket secret of org %d: %w", bucket.OrgID, err)
+	}
+	bucket.SecretKey = decrypted
+	return nil
+}
+
+// reencryptBuckets rewrites every bucket secret from one encryption to
+// another; from nil means the secrets are stored in plaintext.
+func (c *CompositeEncryptedStore) reencryptBuckets(from, to types.EncryptionService) error {
+	buckets, err := c.baseStore.BuildCacheBucketList()
+	if err != nil {
+		return fmt.Errorf("failed to list cache buckets: %w", err)
+	}
+	for _, bucket := range buckets {
+		if err := decryptBucket(from, bucket); err != nil {
+			return err
+		}
+		if err := encryptBucket(to, bucket); err != nil {
+			return err
+		}
+		if err := c.baseStore.BuildCacheBucketUpdate(bucket); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *CompositeEncryptedStore) BuildCacheUsageAdd(usage *model.BuildCacheUsage) error {
+	return c.baseStore.BuildCacheUsageAdd(usage)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheUsageSum(filter model.BuildCacheUsageFilter) (*model.BuildCacheUsageCounts, error) {
+	return c.baseStore.BuildCacheUsageSum(filter)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheUsageByOrg(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error) {
+	return c.baseStore.BuildCacheUsageByOrg(filter)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheUsageByRepo(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error) {
+	return c.baseStore.BuildCacheUsageByRepo(filter)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheUsageByDay(filter model.BuildCacheUsageFilter) ([]*model.BuildCacheUsageGroup, error) {
+	return c.baseStore.BuildCacheUsageByDay(filter)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheUsagePrune(before int64) error {
+	return c.baseStore.BuildCacheUsagePrune(before)
 }
 
 func (c *CompositeEncryptedStore) BuildCacheUpdate(entry *model.BuildCache) error {

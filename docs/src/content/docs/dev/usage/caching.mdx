@@ -124,6 +124,71 @@ crow repo cache purge <repo>
 
 The API endpoints are `GET /api/v1/repos/{repo_id}/caches`, `DELETE /api/v1/repos/{repo_id}/caches` and `DELETE /api/v1/repos/{repo_id}/caches/{cache_id}`.
 
+The **Caches** tab also shows the hit rate of the last 30 days.
+
+### Users and organizations
+
+The **Caches** tab of the organization settings, and of a user's own organization, shows the caches of all its repositories:
+size, hit rate and egress, the restores per day of the last 30 days and a breakdown per repository.
+Organization admins can delete all caches of the organization there.
+
+A restore counts as a hit when it found the key, as a restore key hit when it fell back to one of the `restore_keys`, and as a miss otherwise.
+The check a save makes before archiving is not counted.
+Egress is the size of the archives handed out to restore, ingress the size of the archives saved.
+
+### Server administrators
+
+**Admin Settings > Caches** lists the caches of every user and organization with their size, hit rate, egress of the current month and retention.
+Users with the `maintenance:read` permission can view it, `maintenance:write` is needed to change anything.
+From there, admins can
+
+- set a size limit, a monthly egress limit and a retention period per user or organization, each either the server default, unlimited or a custom value,
+- delete all caches of a user or organization,
+- run the cleanup at once instead of waiting for the next run.
+
+Lowering a size limit evicts the least recently used caches of the owner right away.
+The defaults come from `CROW_CACHE_MAX_ORG_SIZE`, `CROW_CACHE_MAX_ORG_EGRESS` and `CROW_CACHE_TTL`, and `CROW_CACHE_MAX_REPO_SIZE` and `CROW_CACHE_MAX_TOTAL_SIZE` apply on top.
+
+Egress is counted per calendar month in UTC.
+A restore that would exceed the monthly egress limit is skipped: the step logs `not restoring <key>: the monthly cache download limit is reached` and the pipeline continues without the cache.
+
+### Own buckets
+
+Users and organizations can keep their caches in an S3-compatible bucket of their own instead of the server's storage.
+An organization admin enters the endpoint, bucket, optional key prefix and credentials in the **Own bucket** section of the organization's **Caches** tab.
+The server checks that it can reach the bucket before saving it.
+
+- Cache steps up- and download through presigned URLs, so the endpoint must be reachable from pipeline steps.
+- The server's size and egress limits do not apply to an own bucket, and admins cannot change its settings.
+  Instead the owner sets, in the same form:
+  - a size limit, beyond which the least recently used caches in the bucket are evicted,
+  - a monthly egress limit, beyond which restores from the bucket are skipped until the next calendar month (UTC),
+  - a retention period, or the server default.
+  The size and egress limits are unlimited unless set.
+- Connecting, disconnecting or moving a bucket to another endpoint, bucket or prefix starts the caches over: the caches kept in the previous location are deleted.
+  Changing only the credentials or the retention keeps them.
+- The secret key is never sent back to the browser; leave it empty when editing to keep the current one.
+  It is encrypted at rest when the server's secret encryption is enabled.
+- The endpoint must be a public address.
+  Admins can allow endpoints on the local network with `CROW_CACHE_ALLOW_PRIVATE_BUCKET_ENDPOINTS=true`.
+
+Admins can turn off own buckets with `CROW_CACHE_ALLOW_USER_BUCKETS=false`.
+The caches in buckets already connected are then neither used nor deleted, until own buckets are turned on again.
+
+The management API endpoints are:
+
+| Request | Permission | Description |
+| --- | --- | --- |
+| `GET /api/v1/admin/caches` | `maintenance:read` | Caches, usage and limits of all users and organizations |
+| `GET /api/v1/admin/caches/orgs/{org_id}` | `maintenance:read` | Caches of one owner per repository and day |
+| `PUT /api/v1/admin/caches/orgs/{org_id}` | `maintenance:write` | Set `max_size`, `max_egress` (bytes) and `ttl` (seconds); `0` is the server default, `-1` unlimited |
+| `DELETE /api/v1/admin/caches/orgs/{org_id}` | `maintenance:write` | Delete all caches of one owner |
+| `POST /api/v1/admin/caches/cleanup` | `maintenance:write` | Remove expired caches and enforce size limits now |
+| `GET /api/v1/orgs/{org_id}/caches` | organization admin | Caches and usage of the organization |
+| `DELETE /api/v1/orgs/{org_id}/caches` | organization admin | Delete all caches of the organization |
+| `PUT /api/v1/orgs/{org_id}/caches/bucket` | organization admin | Connect or change the own bucket, including its `max_size`, `max_egress` (bytes, `0` unlimited) and `ttl` |
+| `DELETE /api/v1/orgs/{org_id}/caches/bucket` | organization admin | Disconnect the own bucket |
+
 ## How it works
 
 When an agent picks up a workflow, the server mints a token for that workflow.
@@ -156,7 +221,7 @@ The step-facing endpoints authenticate with `Authorization: Bearer $CI_CACHE_TOK
 
 | Request                                      | Body                    | Responses                                                                                         |
 | -------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `POST /api/v1/cache/restore`                 | `{key, restore_keys}`   | `200 {id, key, scope, size, exact, url}`, `404` on a miss                                          |
+| `POST /api/v1/cache/restore`                 | `{key, restore_keys, check}` | `200 {id, key, scope, size, exact, url}`, `404` on a miss, `429` egress limit reached; `check: true` only tests whether the key exists: it is not counted and returns no `id` or `url` |
 | `POST /api/v1/cache/reserve`                 | `{key, size, multipart}` | `201 {id, url, upload_id, part_size, part_urls}`, `409` key exists, `403` read-only (fork pull request), `507` quota exceeded |
 | `PUT <url>` or `PUT <part_urls[i]>`          | archive or part `i`     | Presigned S3 URL, or `/api/v1/cache/blobs/{id}` with the same Bearer token for local storage       |
 | `POST /api/v1/cache/commit`                  | `{id, upload_id}`       | Assembles the parts, if any, and marks the upload as complete                                      |

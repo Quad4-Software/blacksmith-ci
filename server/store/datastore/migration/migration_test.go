@@ -90,6 +90,7 @@ func freshDatabaseTables() []string {
 		"server_configs", "access_tokens", "integrations", "notification_configs",
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
 		"cache_entries", "maintenance_config", "user_forges", "user_identities", "redirections", "build_caches",
+		"build_cache_settings", "build_cache_buckets", "build_cache_usage",
 		"email_unsubscribes", "maintenance_operation_config",
 		"maintenance_stats", "maintenance_logs",
 	}
@@ -638,4 +639,42 @@ func TestAddIntegrationSecretFilters_ExistingTable(t *testing.T) {
 	require.NoError(t, db.QueryRow(`SELECT events, images FROM integrations WHERE id = 1`).Scan(&events, &images))
 	assert.False(t, events.Valid, "existing integrations get NULL events")
 	assert.False(t, images.Valid, "existing integrations get NULL images")
+}
+
+func TestAddBuildCacheManagement_ExistingTable(t *testing.T) {
+	db, driver := testDB(t)
+
+	// A database that already has the build_caches table of the first release.
+	tx, err := db.Begin()
+	require.NoError(t, err)
+	require.NoError(t, createBuildCaches(driver)(tx))
+	require.NoError(t, tx.Commit())
+	t.Cleanup(func() {
+		for _, table := range []string{"build_caches", "build_cache_settings", "build_cache_buckets", "build_cache_usage"} {
+			_, _ = db.Exec("DROP TABLE " + table)
+		}
+	})
+	_, err = db.Exec(`INSERT INTO build_caches (repo_id, scope, cache_key, size) VALUES (1, 'refs/heads/main', 'k', 5)`)
+	require.NoError(t, err)
+
+	// Run twice to cover idempotency.
+	for range 2 {
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		require.NoError(t, addBuildCacheManagement(driver)(tx))
+		require.NoError(t, tx.Commit())
+	}
+
+	var bucketID int64
+	require.NoError(t, db.QueryRow(`SELECT bucket_id FROM build_caches WHERE cache_key = 'k'`).Scan(&bucketID))
+	assert.Zero(t, bucketID, "existing entries are in the server's storage")
+
+	_, err = db.Exec(`INSERT INTO build_cache_buckets (org_id, endpoint, bucket, use_ssl) VALUES (1, 'minio:9000', 'cache', false)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO build_cache_settings (org_id, max_size) VALUES (1, 10)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO build_cache_usage (repo_id, org_id, day, hits) VALUES (1, 1, 0, 1)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO build_cache_usage (repo_id, org_id, day, hits) VALUES (1, 1, 0, 1)`)
+	assert.Error(t, err, "one usage row per repo, bucket and day")
 }

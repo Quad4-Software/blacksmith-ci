@@ -131,6 +131,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-agent-protocol-version", Migrate: addAgentProtocolVersion},
 		{ID: "crow-add-agent-remote-update", Migrate: addAgentRemoteUpdate},
 		{ID: "crow-add-provisioning-progress", Migrate: addProvisioningProgress},
+		{ID: "crow-add-build-cache-management", Migrate: addBuildCacheManagement(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -544,6 +545,161 @@ func createBuildCaches(driver string) func(tx *sql.Tx) error {
 			return nil
 		}
 		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_build_caches_last_used ON build_caches (last_used)`)
+		return err
+	}
+}
+
+// addBuildCacheManagement adds build_caches.bucket_id and the tables holding
+// per-org cache limits, buckets orgs connected and daily cache usage.
+func addBuildCacheManagement(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if tableExists(tx, "build_caches") {
+			if err := addColumnIfNotExists("build_caches", "bucket_id", "BIGINT NOT NULL DEFAULT 0")(tx); err != nil {
+				return fmt.Errorf("add build_caches.bucket_id: %w", err)
+			}
+		}
+		var ddls []string
+		switch driver {
+		case "postgres":
+			ddls = []string{
+				`CREATE TABLE IF NOT EXISTS build_cache_settings (
+					org_id BIGINT PRIMARY KEY,
+					max_size BIGINT NOT NULL DEFAULT 0,
+					max_egress BIGINT NOT NULL DEFAULT 0,
+					ttl BIGINT NOT NULL DEFAULT 0,
+					updated BIGINT NOT NULL DEFAULT 0
+				)`,
+				`CREATE TABLE IF NOT EXISTS build_cache_buckets (
+					id BIGSERIAL PRIMARY KEY,
+					org_id BIGINT NOT NULL,
+					endpoint VARCHAR(255) NOT NULL,
+					bucket VARCHAR(255) NOT NULL,
+					region VARCHAR(255),
+					prefix VARCHAR(255),
+					access_key VARCHAR(255),
+					secret_key TEXT,
+					use_ssl BOOLEAN NOT NULL DEFAULT true,
+					path_style BOOLEAN NOT NULL DEFAULT false,
+					max_size BIGINT NOT NULL DEFAULT 0,
+					max_egress BIGINT NOT NULL DEFAULT 0,
+					ttl BIGINT NOT NULL DEFAULT 0,
+					created BIGINT NOT NULL DEFAULT 0,
+					updated BIGINT NOT NULL DEFAULT 0,
+					UNIQUE(org_id)
+				)`,
+				`CREATE TABLE IF NOT EXISTS build_cache_usage (
+					id BIGSERIAL PRIMARY KEY,
+					repo_id BIGINT NOT NULL,
+					org_id BIGINT NOT NULL,
+					bucket_id BIGINT NOT NULL DEFAULT 0,
+					day BIGINT NOT NULL,
+					hits BIGINT NOT NULL DEFAULT 0,
+					partial_hits BIGINT NOT NULL DEFAULT 0,
+					misses BIGINT NOT NULL DEFAULT 0,
+					denied BIGINT NOT NULL DEFAULT 0,
+					saves BIGINT NOT NULL DEFAULT 0,
+					egress BIGINT NOT NULL DEFAULT 0,
+					ingress BIGINT NOT NULL DEFAULT 0,
+					UNIQUE(repo_id, bucket_id, day)
+				)`,
+			}
+		case "mysql":
+			ddls = []string{
+				`CREATE TABLE IF NOT EXISTS build_cache_settings (
+					org_id BIGINT PRIMARY KEY,
+					max_size BIGINT NOT NULL DEFAULT 0,
+					max_egress BIGINT NOT NULL DEFAULT 0,
+					ttl BIGINT NOT NULL DEFAULT 0,
+					updated BIGINT NOT NULL DEFAULT 0
+				)`,
+				`CREATE TABLE IF NOT EXISTS build_cache_buckets (
+					id BIGINT PRIMARY KEY AUTO_INCREMENT,
+					org_id BIGINT NOT NULL,
+					endpoint VARCHAR(255) NOT NULL,
+					bucket VARCHAR(255) NOT NULL,
+					region VARCHAR(255),
+					prefix VARCHAR(255),
+					access_key VARCHAR(255),
+					secret_key TEXT,
+					use_ssl BOOLEAN NOT NULL DEFAULT true,
+					path_style BOOLEAN NOT NULL DEFAULT false,
+					max_size BIGINT NOT NULL DEFAULT 0,
+					max_egress BIGINT NOT NULL DEFAULT 0,
+					ttl BIGINT NOT NULL DEFAULT 0,
+					created BIGINT NOT NULL DEFAULT 0,
+					updated BIGINT NOT NULL DEFAULT 0,
+					UNIQUE(org_id)
+				)`,
+				`CREATE TABLE IF NOT EXISTS build_cache_usage (
+					id BIGINT PRIMARY KEY AUTO_INCREMENT,
+					repo_id BIGINT NOT NULL,
+					org_id BIGINT NOT NULL,
+					bucket_id BIGINT NOT NULL DEFAULT 0,
+					day BIGINT NOT NULL,
+					hits BIGINT NOT NULL DEFAULT 0,
+					partial_hits BIGINT NOT NULL DEFAULT 0,
+					misses BIGINT NOT NULL DEFAULT 0,
+					denied BIGINT NOT NULL DEFAULT 0,
+					saves BIGINT NOT NULL DEFAULT 0,
+					egress BIGINT NOT NULL DEFAULT 0,
+					ingress BIGINT NOT NULL DEFAULT 0,
+					UNIQUE(repo_id, bucket_id, day),
+					INDEX idx_build_cache_usage_org_day (org_id, day)
+				)`,
+			}
+		default:
+			ddls = []string{
+				`CREATE TABLE IF NOT EXISTS build_cache_settings (
+					org_id INTEGER PRIMARY KEY,
+					max_size INTEGER NOT NULL DEFAULT 0,
+					max_egress INTEGER NOT NULL DEFAULT 0,
+					ttl INTEGER NOT NULL DEFAULT 0,
+					updated INTEGER NOT NULL DEFAULT 0
+				)`,
+				`CREATE TABLE IF NOT EXISTS build_cache_buckets (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					org_id INTEGER NOT NULL,
+					endpoint VARCHAR(255) NOT NULL,
+					bucket VARCHAR(255) NOT NULL,
+					region VARCHAR(255),
+					prefix VARCHAR(255),
+					access_key VARCHAR(255),
+					secret_key TEXT,
+					use_ssl BOOLEAN NOT NULL DEFAULT true,
+					path_style BOOLEAN NOT NULL DEFAULT false,
+					max_size INTEGER NOT NULL DEFAULT 0,
+					max_egress INTEGER NOT NULL DEFAULT 0,
+					ttl INTEGER NOT NULL DEFAULT 0,
+					created INTEGER NOT NULL DEFAULT 0,
+					updated INTEGER NOT NULL DEFAULT 0,
+					UNIQUE(org_id)
+				)`,
+				`CREATE TABLE IF NOT EXISTS build_cache_usage (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					repo_id INTEGER NOT NULL,
+					org_id INTEGER NOT NULL,
+					bucket_id INTEGER NOT NULL DEFAULT 0,
+					day INTEGER NOT NULL,
+					hits INTEGER NOT NULL DEFAULT 0,
+					partial_hits INTEGER NOT NULL DEFAULT 0,
+					misses INTEGER NOT NULL DEFAULT 0,
+					denied INTEGER NOT NULL DEFAULT 0,
+					saves INTEGER NOT NULL DEFAULT 0,
+					egress INTEGER NOT NULL DEFAULT 0,
+					ingress INTEGER NOT NULL DEFAULT 0,
+					UNIQUE(repo_id, bucket_id, day)
+				)`,
+			}
+		}
+		for _, ddl := range ddls {
+			if _, err := tx.Exec(ddl); err != nil {
+				return err
+			}
+		}
+		if driver == "mysql" {
+			return nil
+		}
+		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_build_cache_usage_org_day ON build_cache_usage (org_id, day)`)
 		return err
 	}
 }

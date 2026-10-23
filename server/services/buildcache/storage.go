@@ -19,11 +19,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -170,6 +172,9 @@ type S3Options struct {
 	SSL       bool
 	PathStyle bool
 	Prefix    string
+	// PublicOnly refuses to connect to loopback, private, link-local and
+	// other non-public addresses, for endpoints that users enter.
+	PublicOnly bool
 }
 
 // s3Storage keeps archives in an S3-compatible bucket. The cache step talks to
@@ -200,12 +205,16 @@ func NewS3Storage(ctx context.Context, opts S3Options) (Storage, error) {
 	if opts.PathStyle {
 		lookup = minio.BucketLookupPath
 	}
-	client, err := minio.New(opts.Endpoint, &minio.Options{
+	minioOpts := &minio.Options{
 		Creds:        credentials.NewStaticV4(opts.AccessKey, opts.SecretKey, ""),
 		Secure:       opts.SSL,
 		Region:       opts.Region,
 		BucketLookup: lookup,
-	})
+	}
+	if opts.PublicOnly {
+		minioOpts.Transport = publicOnlyTransport()
+	}
+	client, err := minio.New(opts.Endpoint, minioOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create S3 client: %w", err)
 	}
@@ -320,4 +329,50 @@ func (s *s3Storage) Size(ctx context.Context, name string) (int64, error) {
 
 func (s *s3Storage) Delete(ctx context.Context, name string) error {
 	return s.client.RemoveObject(ctx, s.bucket, s.key(name), minio.RemoveObjectOptions{})
+}
+
+// ErrPrivateEndpoint is returned when a user's bucket endpoint resolves to an
+// address that is not public.
+var ErrPrivateEndpoint = errors.New("the endpoint is not a public address")
+
+// cgnat is the shared address space of carrier-grade NAT, 100.64.0.0/10,
+// which also holds VPN and tailnet addresses.
+var _, cgnat, _ = net.ParseCIDR("100.64.0.0/10")
+
+// bucketDialTimeout bounds connecting to, and keeps alive connections with, a
+// user's bucket.
+const bucketDialTimeout = 30 * time.Second
+
+// isPublicIP reports whether ip is routable on the internet.
+func isPublicIP(ip net.IP) bool {
+	return ip.IsGlobalUnicast() && !ip.IsPrivate() && !cgnat.Contains(ip)
+}
+
+// publicOnlyTransport dials only public addresses. The check runs on the
+// address actually dialed, after name resolution, so a name that resolves to
+// an internal address, now or after a rebinding, is refused. It ignores
+// proxies from the environment, which would hide the dialed address.
+func publicOnlyTransport() *http.Transport {
+	dialer := &net.Dialer{
+		Timeout:   bucketDialTimeout,
+		KeepAlive: bucketDialTimeout,
+		Control: func(_, address string, _ syscall.RawConn) error {
+			host, _, err := net.SplitHostPort(address)
+			if err != nil {
+				return err
+			}
+			if ip := net.ParseIP(host); ip == nil || !isPublicIP(ip) {
+				return fmt.Errorf("%w: %s", ErrPrivateEndpoint, host)
+			}
+			return nil
+		},
+	}
+	transport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		transport = &http.Transport{}
+	}
+	transport = transport.Clone()
+	transport.Proxy = nil
+	transport.DialContext = dialer.DialContext
+	return transport
 }
