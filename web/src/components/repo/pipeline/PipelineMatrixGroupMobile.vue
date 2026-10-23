@@ -53,7 +53,7 @@
             </button>
             <ComboboxInput
               :placeholder="selectedAxisValues.length === 0 ? $t('repo.pipeline.matrix.filter_placeholder') : ''"
-              class="flex-1 min-w-[4rem] bg-transparent text-xs outline-hidden placeholder:text-muted-foreground"
+              class="flex-1 min-w-[4rem] bg-transparent text-base md:text-xs outline-hidden placeholder:text-muted-foreground"
             />
           </ComboboxAnchor>
           <ComboboxList class="w-[var(--reka-combobox-trigger-width)]">
