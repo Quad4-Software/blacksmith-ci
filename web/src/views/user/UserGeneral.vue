@@ -668,16 +668,10 @@ async function saveProfile() {
 
   isSaving.value = true;
   try {
-    const payload = {
-      ...user,
+    await apiClient.updateSelf({
       description: userDescription.value,
       timezone: userTimezone.value,
-      // Omitted from the request, so the server keeps the user's roles as they are.
-      roles: undefined,
-      permissions: undefined,
-    };
-
-    await apiClient.updateUser(payload);
+    });
 
     // Update window user object
     if (window.CROW_USER) {

@@ -42,6 +42,42 @@ func GetSelf(ctx context.Context, _ *GetSelfInput) (*GetSelfOutput, error) {
 	return &GetSelfOutput{Body: session.User(c)}, nil
 }
 
+// PatchSelfBody holds the profile fields users may change about themselves.
+// A nil field keeps its current value.
+type PatchSelfBody struct {
+	Description *string `json:"description,omitempty" doc:"user description"`
+	Timezone    *string `json:"timezone,omitempty" maxLength:"100" doc:"IANA timezone, e.g. Europe/Berlin; empty to unset"`
+}
+
+type PatchSelfInput struct {
+	Body PatchSelfBody
+}
+
+type PatchSelfOutput struct {
+	Body *model.User
+}
+
+// PatchSelf updates the profile of the authenticated user. Unlike PatchUser it
+// needs no users:write permission, so it must never touch the admin flag,
+// roles, email or avatar.
+func PatchSelf(ctx context.Context, input *PatchSelfInput) (*PatchSelfOutput, error) {
+	c := ginCtx(ctx)
+	user := session.User(c)
+
+	if input.Body.Description != nil {
+		user.Description = *input.Body.Description
+	}
+	if input.Body.Timezone != nil {
+		user.Timezone = *input.Body.Timezone
+	}
+
+	if err := store.FromContext(c).UpdateUser(user); err != nil {
+		return nil, huma.Error409Conflict("conflict updating user")
+	}
+
+	return &PatchSelfOutput{Body: user}, nil
+}
+
 type GetFeedInput struct {
 	Latest bool `query:"latest" doc:"return only the latest pipeline per repo"`
 }

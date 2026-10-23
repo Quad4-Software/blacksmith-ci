@@ -115,3 +115,41 @@ func TestPostUserRoles(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, se.GetStatus())
 	})
 }
+
+// Users without users:write must be able to edit their own profile (issue
+// #1644), and the self endpoint must not let them change anything else.
+func TestPatchSelf(t *testing.T) {
+	str := func(s string) *string { return &s }
+	tests := []struct {
+		name     string
+		body     PatchSelfBody
+		wantDesc string
+		wantTZ   string
+	}{
+		{"updates description and timezone", PatchSelfBody{Description: str("hi"), Timezone: str("Europe/Berlin")}, "hi", "Europe/Berlin"},
+		{"nil fields keep values", PatchSelfBody{}, "old", "UTC"},
+		{"empty strings clear values", PatchSelfBody{Description: str(""), Timezone: str("")}, "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := store_mocks.NewMockStore(t)
+			var saved *model.User
+			s.On("UpdateUser", mock.Anything).Run(func(a mock.Arguments) { saved, _ = a.Get(0).(*model.User) }).Return(nil)
+			gin.SetMode(gin.TestMode)
+			c, _ := gin.CreateTestContext(nil)
+			store.ToContext(c, s)
+			c.Set("user", &model.User{
+				ID: 2, Login: "bob", Email: "bob@example.com",
+				Roles: model.JSONSliceString{"operator"}, Description: "old", Timezone: "UTC",
+			})
+
+			_, err := PatchSelf(testCtx(c), &PatchSelfInput{Body: tt.body})
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantDesc, saved.Description)
+			assert.Equal(t, tt.wantTZ, saved.Timezone)
+			assert.False(t, saved.Admin)
+			assert.Equal(t, "bob@example.com", saved.Email)
+			assert.Equal(t, model.JSONSliceString{"operator"}, saved.Roles)
+		})
+	}
+}

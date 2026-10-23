@@ -44,6 +44,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.GetSelf)
 	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-self", Method: http.MethodPatch, Path: "/user",
+		Summary: "Update the currently authenticated user's profile", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PatchSelf)
+	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-feed", Method: http.MethodGet, Path: "/user/feed",
 		Summary: "Get the currently authenticated user's pipeline feed", Tags: []string{"User"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},

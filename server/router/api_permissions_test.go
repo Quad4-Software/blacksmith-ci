@@ -23,6 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/store"
@@ -42,6 +43,11 @@ func newGuardEngine(t *testing.T, user *model.User) *gin.Engine {
 
 func newGuardEngineWithAutoscaler(t *testing.T, user *model.User, autoscaler *model.Autoscaler) *gin.Engine {
 	t.Helper()
+	return newTestEngine(t, guardStore{}, user, autoscaler)
+}
+
+func newTestEngine(t *testing.T, s store.Store, user *model.User, autoscaler *model.Autoscaler) *gin.Engine {
+	t.Helper()
 	// The /debug group is only registered at debug log level.
 	prev := zerolog.GlobalLevel()
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -51,7 +57,7 @@ func newGuardEngineWithAutoscaler(t *testing.T, user *model.User, autoscaler *mo
 	e := gin.New()
 	e.Use(gin.Recovery())
 	e.Use(func(c *gin.Context) {
-		store.ToContext(c, guardStore{})
+		store.ToContext(c, s)
 		if user != nil {
 			c.Set("user", user)
 		}
@@ -186,6 +192,42 @@ func TestUserRoutes(t *testing.T) {
 			}
 		})
 	}
+}
+
+// selfStore records the user saved by PATCH /user.
+type selfStore struct {
+	guardStore
+	saved *model.User
+}
+
+func (s *selfStore) UpdateUser(u *model.User) error {
+	s.saved = u
+	return nil
+}
+
+// A user without users:write must be able to save their own profile (issue
+// #1644), without being able to grant themselves admin or roles on the way.
+func TestPatchSelfRoute(t *testing.T) {
+	user := &model.User{ID: 1, Login: "user", Timezone: "UTC"}
+	s := &selfStore{}
+	body := `{"description":"hi","timezone":"Europe/Berlin","admin":true,"roles":["operator"]}`
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/user", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	newTestEngine(t, s, user, nil).ServeHTTP(w, req)
+
+	// Huma ignores the admin and roles fields, which PatchSelfBody does not have.
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Equal(t, "hi", s.saved.Description)
+	assert.Equal(t, "Europe/Berlin", s.saved.Timezone)
+	assert.False(t, s.saved.Admin)
+	assert.Empty(t, s.saved.Roles)
+
+	req = httptest.NewRequest(http.MethodPatch, "/api/v1/user", strings.NewReader(`{"description":"hi"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	newTestEngine(t, &selfStore{}, nil, nil).ServeHTTP(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "anonymous")
 }
 
 // The heartbeat route must only accept the token of the autoscaler it reports

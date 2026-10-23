@@ -589,6 +589,10 @@ export default class CrowClient extends ApiClient {
     return this._get('/api/v1/user');
   }
 
+  async updateSelf(profile: Pick<User, 'description' | 'timezone'>): Promise<User> {
+    return this._patch('/api/v1/user', profile) as Promise<User>;
+  }
+
   async getToken(): Promise<string> {
     return this._post('/api/v1/user/token') as Promise<string>;
   }
