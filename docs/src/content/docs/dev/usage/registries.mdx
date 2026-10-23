@@ -8,6 +8,7 @@ This allows to authenticate against the respective registry and pull private ima
 
 Registry hostnames are matched to each image in the YAML config.
 If the hostname matches, the stored registry credentials are used to authenticate and pull the image.
+The registry address is therefore the hostname only, optionally with a port, without a scheme or a path such as a namespace.
 
 :::caution
 Credentials are used by the agent and are never exposed to build containers.
@@ -19,7 +20,7 @@ The implicit default when not specifying a registry is always `docker.io`.
 
 Examples:
 
-- Image `quay.io/foo/bar` has hostname `gcr.io`
+- Image `quay.io/foo/bar` has hostname `quay.io`
 - Image `foo/bar` has hostname `docker.io`
 - Image `qux.com:8000/foo/bar` has hostname `qux.com:8000`
 

@@ -427,11 +427,11 @@ export default class CrowClient extends ApiClient {
   }
 
   async updateRegistry(repoId: number, registry: Partial<Registry>): Promise<unknown> {
-    return this._patch(`/api/v1/repos/${repoId}/registries/${registry.address}`, registry);
+    return this._patch(`/api/v1/repos/${repoId}/registries/${encodeURIComponent(registry.address ?? '')}`, registry);
   }
 
   async deleteRegistry(repoId: number, registryAddress: string): Promise<unknown> {
-    return this._delete(`/api/v1/repos/${repoId}/registries/${registryAddress}`);
+    return this._delete(`/api/v1/repos/${repoId}/registries/${encodeURIComponent(registryAddress)}`);
   }
 
   async getRepoCaches(repoId: number): Promise<RepoCaches> {
@@ -456,11 +456,11 @@ export default class CrowClient extends ApiClient {
   }
 
   async updateOrgRegistry(orgId: number, registry: Partial<Registry>): Promise<unknown> {
-    return this._patch(`/api/v1/orgs/${orgId}/registries/${registry.address}`, registry);
+    return this._patch(`/api/v1/orgs/${orgId}/registries/${encodeURIComponent(registry.address ?? '')}`, registry);
   }
 
   async deleteOrgRegistry(orgId: number, registryAddress: string): Promise<unknown> {
-    return this._delete(`/api/v1/orgs/${orgId}/registries/${registryAddress}`);
+    return this._delete(`/api/v1/orgs/${orgId}/registries/${encodeURIComponent(registryAddress)}`);
   }
 
   async getGlobalRegistryList(opts?: PaginationOptions): Promise<Registry[] | null> {
@@ -473,11 +473,11 @@ export default class CrowClient extends ApiClient {
   }
 
   async updateGlobalRegistry(registry: Partial<Registry>): Promise<unknown> {
-    return this._patch(`/api/v1/registries/${registry.address}`, registry);
+    return this._patch(`/api/v1/registries/${encodeURIComponent(registry.address ?? '')}`, registry);
   }
 
   async deleteGlobalRegistry(registryAddress: string): Promise<unknown> {
-    return this._delete(`/api/v1/registries/${registryAddress}`);
+    return this._delete(`/api/v1/registries/${encodeURIComponent(registryAddress)}`);
   }
 
   async getCronList(repoId: number, opts?: PaginationOptions): Promise<Cron[] | null> {

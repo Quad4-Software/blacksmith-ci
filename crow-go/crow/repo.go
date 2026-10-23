@@ -208,7 +208,7 @@ func (c *client) RepoMove(repoID int64, opt RepoMoveOptions) error {
 // Registry returns a registry by hostname.
 func (c *client) Registry(repoID int64, hostname string) (*Registry, error) {
 	out := new(Registry)
-	uri := fmt.Sprintf(pathRepoRegistry, c.addr, repoID, hostname)
+	uri := fmt.Sprintf(pathRepoRegistry, c.addr, repoID, url.PathEscape(hostname))
 	err := c.get(uri, out)
 	return out, err
 }
@@ -233,14 +233,14 @@ func (c *client) RegistryCreate(repoID int64, in *Registry) (*Registry, error) {
 // RegistryUpdate updates a registry.
 func (c *client) RegistryUpdate(repoID int64, in *Registry) (*Registry, error) {
 	out := new(Registry)
-	uri := fmt.Sprintf(pathRepoRegistry, c.addr, repoID, in.Address)
+	uri := fmt.Sprintf(pathRepoRegistry, c.addr, repoID, url.PathEscape(in.Address))
 	err := c.patch(uri, in, out)
 	return out, err
 }
 
 // RegistryDelete deletes a registry.
 func (c *client) RegistryDelete(repoID int64, hostname string) error {
-	uri := fmt.Sprintf(pathRepoRegistry, c.addr, repoID, hostname)
+	uri := fmt.Sprintf(pathRepoRegistry, c.addr, repoID, url.PathEscape(hostname))
 	return c.delete(uri)
 }
 

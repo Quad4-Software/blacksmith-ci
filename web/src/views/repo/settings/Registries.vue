@@ -84,8 +84,7 @@ const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(async (
 });
 
 const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async (_registry: Registry) => {
-  const registryAddress = encodeURIComponent(_registry.address);
-  await apiClient.deleteRegistry(repo.value.id, registryAddress);
+  await apiClient.deleteRegistry(repo.value.id, _registry.address);
   notifications.notify({
     title: i18n.t('notify_title_success'),
     text: i18n.t('registries.notify_text_deleted'),

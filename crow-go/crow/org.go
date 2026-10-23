@@ -90,7 +90,7 @@ func (c *client) OrgSecretDelete(orgID int64, secret string) error {
 // OrgRegistry returns an organization registry by address.
 func (c *client) OrgRegistry(orgID int64, registry string) (*Registry, error) {
 	out := new(Registry)
-	uri := fmt.Sprintf(pathOrgRegistry, c.addr, orgID, registry)
+	uri := fmt.Sprintf(pathOrgRegistry, c.addr, orgID, url.PathEscape(registry))
 	err := c.get(uri, out)
 	return out, err
 }
@@ -115,13 +115,13 @@ func (c *client) OrgRegistryCreate(orgID int64, in *Registry) (*Registry, error)
 // OrgRegistryUpdate updates an organization registry.
 func (c *client) OrgRegistryUpdate(orgID int64, in *Registry) (*Registry, error) {
 	out := new(Registry)
-	uri := fmt.Sprintf(pathOrgRegistry, c.addr, orgID, in.Address)
+	uri := fmt.Sprintf(pathOrgRegistry, c.addr, orgID, url.PathEscape(in.Address))
 	err := c.patch(uri, in, out)
 	return out, err
 }
 
 // OrgRegistryDelete deletes an organization registry.
 func (c *client) OrgRegistryDelete(orgID int64, registry string) error {
-	uri := fmt.Sprintf(pathOrgRegistry, c.addr, orgID, registry)
+	uri := fmt.Sprintf(pathOrgRegistry, c.addr, orgID, url.PathEscape(registry))
 	return c.delete(uri)
 }

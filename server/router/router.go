@@ -16,6 +16,7 @@ package router
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -54,7 +55,17 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 	e.Use(session.SetUser())
 	e.Use(session.EnforceAccessTokenScopes(server.Config.Server.RootPath, resolveAccessTokenScope))
 
-	e.NoRoute(gin.WrapF(noRouteHandler))
+	// Unknown API paths get a JSON 404 instead of the web UI, whose 200 a client
+	// would otherwise read as success.
+	apiPrefix := server.Config.Server.RootPath + "/api/"
+	webUI := gin.WrapF(noRouteHandler)
+	e.NoRoute(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, apiPrefix) {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"title": "Not Found", "status": http.StatusNotFound, "detail": "no such API route"})
+			return
+		}
+		webUI(c)
+	})
 
 	base := e.Group(server.Config.Server.RootPath)
 	{

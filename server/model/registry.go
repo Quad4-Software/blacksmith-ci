@@ -18,12 +18,14 @@ package model
 import (
 	"errors"
 	"net/url"
+	"strings"
 
 	"github.com/uptrace/bun"
 )
 
 var (
 	errRegistryAddressInvalid  = errors.New("invalid registry address")
+	errRegistryAddressNotHost  = errors.New("invalid registry address: use the registry hostname only (e.g. docker.io or registry.example.com:5000), without scheme or path")
 	errRegistryUsernameInvalid = errors.New("invalid registry username")
 	errRegistryPasswordInvalid = errors.New("invalid registry password")
 )
@@ -67,6 +69,9 @@ func (r *Registry) Validate() error {
 	switch {
 	case len(r.Address) == 0:
 		return errRegistryAddressInvalid
+	// Images are matched to registries by hostname only, so a path never matches.
+	case strings.ContainsAny(r.Address, "/?#@ \t"):
+		return errRegistryAddressNotHost
 	case len(r.Username) == 0:
 		return errRegistryUsernameInvalid
 	case len(r.Password) == 0:
