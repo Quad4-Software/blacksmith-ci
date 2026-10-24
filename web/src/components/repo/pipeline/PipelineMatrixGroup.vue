@@ -150,101 +150,104 @@
                 :class="{ 'rotate-90 transform': expandedVariantId === workflow.id }"
               />
               <!-- Status Icon -->
-              <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 mt-0.5 shrink-0 mr-0.5" />
+              <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 mt-[3px] shrink-0 mr-0.5" />
               <!-- Axis chips (flow: all axes, primary first, +N overflow) -->
               <MatrixVariantChips v-if="axisKeys.length > 0" :chips="axisChipsFor(workflow)" />
               <span v-else class="min-w-0 flex-1 mt-0.5 truncate font-mono text-xs text-muted-foreground">{{
                 workflow.name
               }}</span>
-              <!-- Attempt dropdown -->
-              <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-              <DropdownMenu v-if="workflowHasReruns(workflow)">
-                <DropdownMenuTrigger as-child>
-                  <button
-                    class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
-                    @click.stop
-                  >
-                    #{{ workflow.attempt }}
-                    <Icon name="chevron-down" class="h-2.5 w-2.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem
-                    v-for="attempt in workflowAttemptsList(workflow)"
-                    :key="attempt.id"
-                    class="flex items-center gap-2 text-xs"
-                    @click.stop="switchAttempt(workflow, attempt)"
-                  >
-                    <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
-                    #{{ attempt.attempt }}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-              <!-- Agent (icon only, name in tooltip) -->
-              <TooltipProvider v-if="workflow.agent_id">
-                <Tooltip>
-                  <TooltipTrigger as-child>
-                    <router-link
-                      :to="{ name: 'admin-agent-detail', params: { id: workflow.agent_id } }"
-                      class="shrink-0 mt-0.5 text-primary hover:text-primary/80 flex items-center"
+              <!-- Trailing controls, centered on the first chip line so they stay aligned when chips wrap -->
+              <div class="flex h-[18px] shrink-0 items-center gap-1">
+                <!-- Attempt dropdown -->
+                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                <DropdownMenu v-if="workflowHasReruns(workflow)">
+                  <DropdownMenuTrigger as-child>
+                    <button
+                      class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
                       @click.stop
                     >
-                      <Icon name="agent" class="w-3.5 h-3.5" />
-                    </router-link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-                      <div class="col-span-2 font-medium mb-1">
-                        {{ getAgent(workflow.agent_id)?.name ?? `#${workflow.agent_id}` }}
-                      </div>
-                      <template v-if="getAgent(workflow.agent_id)">
-                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
-                        <span>{{ getAgent(workflow.agent_id)!.platform }}</span>
-                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
-                        <span>{{ getAgent(workflow.agent_id)!.backend }}</span>
-                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
-                        <span>{{
-                          `${getAgent(workflow.agent_id)!.running_workflows} / ${getAgent(workflow.agent_id)!.capacity}`
-                        }}</span>
-                        <template v-if="getAgent(workflow.agent_id)!.backend === 'docker'">
-                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
-                          <span>{{ formatBytes(getAgent(workflow.agent_id)!.limit_mem, $t) }}</span>
-                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_cpu_quota') }}</span>
-                          <span>{{ formatCPUQuota(getAgent(workflow.agent_id)!.limit_cpu_quota, $t) }}</span>
+                      #{{ workflow.attempt }}
+                      <Icon name="chevron-down" class="h-2.5 w-2.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      v-for="attempt in workflowAttemptsList(workflow)"
+                      :key="attempt.id"
+                      class="flex items-center gap-2 text-xs"
+                      @click.stop="switchAttempt(workflow, attempt)"
+                    >
+                      <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                      #{{ attempt.attempt }}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                <!-- Agent (icon only, name in tooltip) -->
+                <TooltipProvider v-if="workflow.agent_id">
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <router-link
+                        :to="{ name: 'admin-agent-detail', params: { id: workflow.agent_id } }"
+                        class="shrink-0 text-primary hover:text-primary/80 flex items-center"
+                        @click.stop
+                      >
+                        <Icon name="agent" class="w-3.5 h-3.5" />
+                      </router-link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                        <div class="col-span-2 font-medium mb-1">
+                          {{ getAgent(workflow.agent_id)?.name ?? `#${workflow.agent_id}` }}
+                        </div>
+                        <template v-if="getAgent(workflow.agent_id)">
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
+                          <span>{{ getAgent(workflow.agent_id)!.platform }}</span>
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
+                          <span>{{ getAgent(workflow.agent_id)!.backend }}</span>
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
+                          <span>{{
+                            `${getAgent(workflow.agent_id)!.running_workflows} / ${getAgent(workflow.agent_id)!.capacity}`
+                          }}</span>
+                          <template v-if="getAgent(workflow.agent_id)!.backend === 'docker'">
+                            <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
+                            <span>{{ formatBytes(getAgent(workflow.agent_id)!.limit_mem, $t) }}</span>
+                            <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_cpu_quota') }}</span>
+                            <span>{{ formatCPUQuota(getAgent(workflow.agent_id)!.limit_cpu_quota, $t) }}</span>
+                          </template>
                         </template>
-                      </template>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <!-- Rerun -->
-              <IconButton
-                v-if="hasPushPermission && workflow.state !== 'pending' && workflow.state !== 'running'"
-                :is-loading="isRerunningWorkflow[workflow.id]"
-                icon="solar:restart-bold"
-                class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
-                :title="$t('repo.pipeline.actions.rerun_workflow')"
-                @click.stop="$emit('rerunWorkflow', workflow.id)"
-              />
-              <!-- Cancel -->
-              <IconButton
-                v-if="hasPushPermission && (workflow.state === 'pending' || workflow.state === 'running')"
-                :is-loading="isCancelingWorkflow[workflow.id]"
-                icon="close"
-                class="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                :title="$t('repo.pipeline.actions.cancel')"
-                size="1.1rem"
-                @click.stop="$emit('cancelWorkflow', workflow.id)"
-              />
-              <!-- Duration -->
-              <span class="shrink-0 mt-0.5 text-xs text-right w-16 pr-1">
-                <PipelineStepDuration
-                  v-if="workflow.started !== workflow.finished"
-                  :workflow="workflow"
-                  class="text-xs"
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <!-- Rerun -->
+                <IconButton
+                  v-if="hasPushPermission && workflow.state !== 'pending' && workflow.state !== 'running'"
+                  :is-loading="isRerunningWorkflow[workflow.id]"
+                  icon="solar:restart-bold"
+                  class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+                  :title="$t('repo.pipeline.actions.rerun_workflow')"
+                  @click.stop="$emit('rerunWorkflow', workflow.id)"
                 />
-              </span>
+                <!-- Cancel -->
+                <IconButton
+                  v-if="hasPushPermission && (workflow.state === 'pending' || workflow.state === 'running')"
+                  :is-loading="isCancelingWorkflow[workflow.id]"
+                  icon="close"
+                  class="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  :title="$t('repo.pipeline.actions.cancel')"
+                  size="1.1rem"
+                  @click.stop="$emit('cancelWorkflow', workflow.id)"
+                />
+                <!-- Duration -->
+                <span class="shrink-0 text-xs text-right w-16 pr-1">
+                  <PipelineStepDuration
+                    v-if="workflow.started !== workflow.finished"
+                    :workflow="workflow"
+                    class="text-xs"
+                  />
+                </span>
+              </div>
             </div>
           </div>
 
