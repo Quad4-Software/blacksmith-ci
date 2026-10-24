@@ -1,0 +1,863 @@
+---
+title: 'Server'
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Server configuration for Crow CI.
+
+## Authentication
+
+### Forge Integration
+
+Crow authenticates users via OAuth2 from a Git forge:
+
+| Forge        | Environment Variable  |
+| ------------ | --------------------- |
+| Forgejo      | `CROW_FORGEJO=true`   |
+| Gitea        | `CROW_GITEA=true`     |
+| GitHub       | `CROW_GITHUB=true`    |
+| GitLab       | `CROW_GITLAB=true`    |
+| Bitbucket DC | `CROW_BITBUCKET=true` |
+
+There is no manual user registration: users sign in through a forge or through single sign-on.
+
+### Single Sign-On (OIDC)
+
+Crow can also sign users in through an OpenID Connect identity provider such as Keycloak, Authentik, Microsoft Entra ID or Okta:
+
+```yaml
+CROW_OIDC_ISSUER=https://idp.example.com/realms/main
+CROW_OIDC_CLIENT_ID=crow
+CROW_OIDC_CLIENT_SECRET=your-client-secret
+```
+
+Users who sign in through single sign-on link a forge account afterwards, because Crow reads repositories through forge accounts.
+Group-based access and admin mapping are available through `CROW_OIDC_ALLOWED_GROUPS` and `CROW_OIDC_ADMIN_GROUPS`, and `CROW_FORGE_LOGIN_DISABLED=true` turns off forge sign-in.
+See [Single Sign-On (OIDC)](/dev/configuration/oidc/) for the full guide.
+
+### LDAP
+
+Crow can also check usernames and passwords against an LDAP directory such as OpenLDAP or Active Directory:
+
+```yaml
+CROW_LDAP_URL=ldaps://ldap.example.com
+CROW_LDAP_BIND_DN=cn=crow,ou=services,dc=example,dc=com
+CROW_LDAP_BIND_PASSWORD_FILE=/run/secrets/crow-ldap
+CROW_LDAP_USER_BASE_DN=ou=people,dc=example,dc=com
+```
+
+LDAP and OIDC can be enabled together, and both use the same forge account linking.
+Set `CROW_TRUSTED_PROXIES` when Crow runs behind a reverse proxy, so the per-IP limit on failed sign-ins sees the real client address.
+See [LDAP sign-in](/dev/configuration/ldap/) for the full guide.
+
+### Registration
+
+Registration is closed by default (`CROW_OPEN=false`). When open, any forge user can register.
+With single sign-on, members of `CROW_OIDC_ALLOWED_GROUPS` or `CROW_LDAP_ALLOWED_GROUPS` can register even when registration is closed.
+
+:::caution
+Restrict access using `CROW_ORGS` to limit registration to organization members:
+
+```yaml
+CROW_ORGS=myorg
+```
+
+:::
+
+### Admin Users
+
+```yaml
+CROW_ADMIN=johnDoe,janeSmith
+```
+
+Admins can also be promoted via UI: Settings → Users → Edit User.
+`CROW_ADMIN` applies to forge sign-in only; for single sign-on use `CROW_OIDC_ADMIN_GROUPS` or `CROW_LDAP_ADMIN_GROUPS`.
+
+### Admin Token Bootstrap
+
+For zero-touch automation (e.g. Terraform), seed a full-admin API token at startup with `CROW_ADMIN_TOKEN`.
+Provide an opaque secret of at least 32 characters, generated with e.g. `openssl rand -hex 32`:
+
+```yaml
+CROW_ADMIN_TOKEN=<your-secret>
+```
+
+The token is owned by a dedicated, non-interactive `crow-admin` system user and grants full admin scope.
+Use the same value directly as the API bearer token (e.g. `CROW_TOKEN` for the CLI).
+The bootstrap is idempotent; changing the value rotates the credential and revokes the previous one on the next boot.
+Keep the secret safe — anyone holding it has full admin access.
+
+## Multi-Forge Support
+
+Crow can connect to multiple Git forges simultaneously, allowing users to manage repositories from different sources (e.g., GitHub and Codeberg) under a single account.
+
+### Configuration
+
+Use `CROW_FORGES` with named forge configurations:
+
+```yaml
+CROW_FORGES=codeberg,github # arbitrary names
+
+# Codeberg
+CROW_FORGE_CODEBERG_TYPE=forgejo
+CROW_FORGE_CODEBERG_URL=https://codeberg.org
+CROW_FORGE_CODEBERG_CLIENT=your-client-id
+CROW_FORGE_CODEBERG_SECRET=your-client-secret
+
+# GitHub
+CROW_FORGE_GITHUB_TYPE=github
+CROW_FORGE_GITHUB_CLIENT=your-github-client-id
+CROW_FORGE_GITHUB_SECRET=your-github-client-secret
+```
+
+See [Forge Integration](/dev/configuration/env-vars/forge/) for all available options.
+
+### How It Works
+
+1. **Initial Login**: Users authenticate with any configured forge. This creates their Crow account.
+
+2. **Linking Forges**: From Settings → General, users can link additional forge accounts. OAuth tokens are stored separately for each forge.
+
+3. **Repository Access**: The "Enable Repository" dialog shows repos from all linked forges with a forge indicator column.
+
+4. **Token Management**: Each forge connection maintains its own OAuth tokens, refreshed independently.
+
+### User Experience
+
+When multiple forges are configured:
+
+- The login page shows buttons for each forge
+- Users can link additional forges from their settings
+- The repository list shows which forge each repo belongs to
+- Pipelines use the correct forge credentials automatically
+
+### Security Considerations
+
+- OAuth tokens are encrypted at rest (when encryption is enabled)
+- Each forge connection is independent - revoking one doesn't affect others
+- Users can unlink forges from their settings at any time
+- Forge linking requires re-authentication with the target forge
+
+### Setting Up OAuth Applications
+
+Each forge requires an OAuth application.
+See the [Forge OAuth2 Setup](/dev/configuration/forge-oauth/) guide for detailed step-by-step instructions for each forge.
+
+## Database
+
+| Driver           | Configuration                   |
+| ---------------- | ------------------------------- |
+| SQLite (default) | Data stored in `/var/lib/crow/` |
+| PostgreSQL (≥11) | `CROW_DATABASE_DRIVER=postgres` |
+| MySQL/MariaDB    | `CROW_DATABASE_DRIVER=mysql`    |
+
+### PostgreSQL
+
+```yaml
+CROW_DATABASE_DRIVER=postgres
+CROW_DATABASE_DATASOURCE=postgres://user:pass@localhost:5432/crow?sslmode=disable
+```
+
+#### Custom Schema
+
+To use a specific PostgreSQL schema instead of `public`:
+
+```yaml
+CROW_DATABASE_SCHEMA=crow_ci
+```
+
+The schema must exist before starting Crow. Create it with:
+
+```sql
+CREATE SCHEMA crow_ci;
+GRANT ALL ON SCHEMA crow_ci TO your_user;
+```
+
+### MySQL/MariaDB
+
+```yaml
+CROW_DATABASE_DRIVER=mysql
+CROW_DATABASE_DATASOURCE=user:pass@tcp(localhost:3306)/crow?parseTime=true
+```
+
+:::note
+Migrations run automatically on startup. Downgrading after a migration is not supported.
+:::
+
+## Encryption
+
+Crow encrypts sensitive data at rest using [Google Tink](https://developers.google.com/tink):
+
+- Secrets
+- Registry credentials
+- User OAuth tokens
+- Forge client secrets
+
+### Setup
+
+```yaml
+CROW_ENCRYPTION_TINK_KEYSET_FILE=/path/to/keyset.json
+```
+
+Generate a keyset with [Tinkey](https://developers.google.com/tink/tinkey-overview):
+
+```bash
+tinkey create-keyset --key-template AES256_GCM_SIV --out keyset.json --out-format json
+```
+
+:::caution
+Back up your keyset file. Without it, encrypted data cannot be recovered.
+:::
+
+### Key Rotation
+
+```bash
+tinkey rotate-keyset --in keyset.json --out keyset.json --key-template AES256_GCM_SIV
+```
+
+Crow re-encrypts data with the new primary key on restart.
+
+### Disabling Encryption
+
+```yaml
+CROW_ENCRYPTION_DISABLE=true
+```
+
+This decrypts all data back to plaintext.
+
+## Backends
+
+The backend determines where pipelines execute.
+
+| Backend      | Use Case                                       |
+| ------------ | ---------------------------------------------- |
+| `docker`     | Default, containers on agent host              |
+| `podman`     | Containers via Podman (experimental)           |
+| `kubernetes` | Pods in K8s cluster                            |
+| `local`      | Direct host execution (macOS only)             |
+
+### Docker
+
+Each step runs in a separate container on the agent.
+
+#### Private Registries
+
+Use `CROW_DOCKER_CONFIG` to pass Docker credential helpers, or configure credentials in the Crow UI.
+
+#### Backend Options
+
+```yaml
+steps:
+  - name: test
+    image: alpine
+    backend_options:
+      docker:
+        user: 10000:10000
+```
+
+On a Windows agent a step can also ask for Hyper-V isolation, which runs it in its own kernel instead of sharing the host's:
+
+```yaml
+steps:
+  - name: test
+    image: mcr.microsoft.com/powershell:nanoserver-ltsc2022
+    backend_options:
+      docker:
+        isolation: hyperv
+```
+
+A step may only strengthen the agent's [`CROW_BACKEND_DOCKER_ISOLATION`](/dev/configuration/env-vars/backend-docker/#backend_docker_isolation), never relax it.
+Asking for `process` or `default` on an agent configured with `hyperv` fails the step, so a pipeline cannot opt out of the boundary the agent operator put in place.
+
+#### Housekeeping
+
+Crow doesn't auto-clean Docker images.
+The following commands should be executed regularly:
+
+```bash
+# Remove dangling images
+docker image prune -f
+
+# Remove orphaned Crow volumes
+docker volume rm $(docker volume ls --filter name=^crow_* --filter dangling=true -q)
+```
+
+### Podman (Experimental)
+
+:::caution
+The Podman backend is experimental and may change in future releases.
+See [Backend: Podman](/dev/configuration/env-vars/backend-podman/) for differences from the Docker backend.
+:::
+
+Each step runs in a separate container using Podman.
+The Podman backend uses the native Podman Go SDK for direct communication, supporting both rootful and rootless configurations.
+
+```yaml
+CROW_BACKEND=podman
+```
+
+#### Socket Configuration
+
+By default, the backend auto-detects the Podman socket:
+- Rootful: `/run/podman/podman.sock`
+- Rootless: `$XDG_RUNTIME_DIR/podman/podman.sock`
+
+To specify a custom socket:
+
+```yaml
+CROW_BACKEND_PODMAN_HOST=unix:///path/to/podman.sock
+```
+
+#### Backend Options
+
+```yaml
+steps:
+  - name: test
+    image: alpine
+    backend_options:
+      podman:
+        user: 10000:10000
+```
+
+#### Housekeeping
+
+Crow doesn't auto-clean Podman images.
+The following commands should be executed regularly:
+
+```bash
+# Remove dangling images
+podman image prune -f
+
+# Remove orphaned Crow volumes
+podman volume rm $(podman volume ls --filter name=^crow_* --filter dangling=true -q)
+```
+
+### Kubernetes
+
+Each step runs in a separate Pod.
+A temporary PVC transfers files between steps.
+
+#### Private Registries
+
+```yaml
+CROW_BACKEND_K8S_PULL_SECRET_NAMES=my-registry-secret
+```
+
+The secret must be of type `kubernetes.io/dockerconfigjson` in the namespace set by `CROW_BACKEND_K8S_NAMESPACE`.
+
+#### Backend Options
+
+```yaml
+steps:
+  - name: build
+    image: alpine
+    backend_options:
+      kubernetes:
+        resources:
+          requests:
+            memory: 200Mi
+            cpu: 100m
+          limits:
+            memory: 400Mi
+            cpu: 1000m
+```
+
+Additional supported options: `nodeSelector`, `tolerations`, `securityContext`, `annotations`, `labels`, `runtimeClassName`, `serviceAccountName`.
+
+:::note
+Some options require explicit permission in agent configuration:
+- `CROW_BACKEND_K8S_POD_ANNOTATIONS_ALLOW_FROM_STEP=true` for annotations
+- `CROW_BACKEND_K8S_SERVICE_ACCOUNT_NAME_ALLOW_FROM_STEP=true` for serviceAccountName
+:::
+
+#### Pod Security defaults
+
+For non-privileged steps Crow emits a container security context that satisfies most of the [Pod Security Standards `restricted` profile](https://kubernetes.io/docs/concepts/security/pod-security-standards/):
+
+- container `allowPrivilegeEscalation: false`
+- container `capabilities.drop: ["ALL"]`
+- pod `seccompProfile.type: RuntimeDefault`
+
+`runAsNonRoot` is intentionally not defaulted because it would break step images that run as root (UID 0).
+Enable it explicitly via `CROW_BACKEND_K8S_SECCTX_NONROOT=true` once your step images are confirmed non-root, or via per-step `securityContext.runAsNonRoot`.
+
+Steps that legitimately need a capability without going full `privileged: true` can add it back via `backend_options.kubernetes.securityContext.capabilities`:
+
+```yaml
+steps:
+  - name: serve
+    image: alpine
+    backend_options:
+      kubernetes:
+        securityContext:
+          capabilities:
+            add: ["NET_BIND_SERVICE"]
+```
+
+Setting `capabilities.drop` explicitly replaces the default `["ALL"]` drop list.
+Steps marked `privileged: true` skip the restricted defaults entirely.
+
+### Local
+
+:::danger
+Except for macOS, where sandboxing is in use and provides basic isolation, this backend executes pipelines without isolation.
+Use only for development or in closed environments.
+:::
+
+```yaml
+CROW_BACKEND=local
+```
+
+The `image` field specifies the shell (e.g., `bash`, `fish`). Plugins work as executables in `$PATH`.
+
+## Metrics
+
+Crow exposes Prometheus metrics at `/metrics`.
+
+### Configuration
+
+```yaml
+CROW_PROMETHEUS_AUTH_TOKEN=your-token
+```
+
+### Prometheus Scrape Config
+
+```yaml
+scrape_configs:
+  - job_name: crow
+    bearer_token: your-token
+    static_configs:
+      - targets: ['crow.example.com']
+```
+
+### Available Metrics
+
+| Metric                      | Description                          |
+| --------------------------- | ------------------------------------ |
+| `crow_pipeline_count`       | Pipeline count by repo/branch/status |
+| `crow_pipeline_time`        | Build time                           |
+| `crow_pipeline_total_count` | Total pipelines                      |
+| `crow_pending_steps`        | Pending steps                        |
+| `crow_running_steps`        | Running steps                        |
+| `crow_repo_count`           | Total repos                          |
+| `crow_user_count`           | Total users                          |
+| `crow_worker_count`         | Connected agents                     |
+
+## SSL/TLS
+
+:::tip
+Using a [reverse proxy](/dev/installation/proxy/) is recommended over direct TLS termination.
+:::
+
+Crow can act as a web server when the following env vars are set:
+
+```yaml
+CROW_SERVER_CERT=/path/to/server.crt
+CROW_SERVER_KEY=/path/to/server.key
+```
+
+## Logging
+
+| Variable                   | Default    | Description                 |
+| -------------------------- | ---------- | --------------------------- |
+| `CROW_LOG_LEVEL`           | `info`     | Log level                   |
+| `CROW_LOG_FILE`            | `stderr`   | Log output destination      |
+| `CROW_LOG_STORE`              | `database` | Pipeline log storage (`database`, `file`, or `s3`) |
+| `CROW_LOG_STORE_FILE_PATH`    | -          | File path for pipeline logs |
+| `CROW_LOG_STORE_S3_ENDPOINT`  | -          | S3 endpoint for pipeline logs |
+| `CROW_LOG_STORE_S3_BUCKET`    | -          | S3 bucket for pipeline logs |
+| `CROW_LOG_STORE_S3_ACCESS_KEY`| -          | S3 access key |
+| `CROW_LOG_STORE_S3_SECRET_KEY`| -          | S3 secret key |
+| `CROW_LOG_STORE_S3_SSL`       | `true`     | Use SSL for S3 connection |
+| `CROW_LOG_STORE_S3_PATH_STYLE`| `false`    | Path-style S3 addressing |
+| `CROW_LOG_STORE_S3_PREFIX`    | `logs`     | Key prefix for S3 log objects |
+
+**`database`** is simplest but grows the DB quickly.
+**`file`** keeps logs on local disk — good for single-server setups.
+**`s3`** offloads logs to object storage — best for large or multi-server deployments.
+See [Logging env vars](/dev/configuration/env-vars/logging/#choosing-a-pipeline-log-store) for a detailed comparison.
+
+### Log Rotation (Alpine Images)
+
+Alpine images auto-rotate logs when `CROW_LOG_FILE` is set to a file path:
+
+| Variable                     | Default     | Description   |
+| ---------------------------- | ----------- | ------------- |
+| `CROW_LOGROTATE_SCHEDULE`    | `0 0 * * *` | Cron schedule |
+| `CROW_LOGROTATE_RETAIN_DAYS` | `7`         | Days to keep  |
+
+## Process Logs
+
+Crow surfaces agent and autoscaler process logs in the UI under **Admin → Agents/Autoscalers → Logs**.
+See [Process Logs](/dev/usage/process-logs/) for details.
+
+## External Config API
+
+A server-side hook that lets Crow admins dynamically generate or modify pipeline configurations before execution.
+
+:::note
+This is an **admin-level feature** configured on the Crow server.
+Individual repository users cannot enable or configure it — it applies globally to all pipelines.
+:::
+
+:::note
+We aim to add support for shared pipeline configs on the user-level and are aware that this implementation is somewhat complex.
+:::
+
+```yaml
+CROW_CONFIG_SERVICE_ENDPOINT=https://example.com/ciconfig
+```
+
+### Use Cases
+
+- **Centralized pipeline templates** — inject standard steps (security scanning, linting) across all repos
+- **Dynamic configuration** — generate pipelines based on changed files or branch patterns
+- **Policy enforcement** — validate or modify pipelines to meet organizational standards
+- **Monorepo support** — generate targeted pipelines based on which packages changed
+
+### How It Works
+
+```mermaid
+sequenceDiagram
+    participant Forge as Git Forge
+    participant Crow as Crow Server
+    participant Config as Config Service
+    participant Agent as Crow Agent
+
+    Forge->>Crow: Webhook (push, PR, etc.)
+    Crow->>Config: POST /ciconfig
+    Note right of Config: Evaluate branch,<br/>changed files, etc.
+    alt Return custom config
+        Config->>Crow: HTTP 200 + configs
+    else Use existing
+        Config->>Crow: HTTP 204
+    end
+    Crow->>Agent: Execute pipeline
+```
+
+<Steps>
+
+1. Before each pipeline run, Crow sends a POST request to the endpoint with repo and pipeline metadata
+
+2. The config service processes the request and can make dynamic decisions based on branch, changed files, event type, etc.
+
+3. The service returns new configs (HTTP 200) or signals "use existing" (HTTP 204)
+
+</Steps>
+
+Requests are signed with `ed25519`. Get the public key for verification from `/api/signature/public-key`.
+
+### Deployment
+
+The config service is a separate application you deploy and maintain. It can run anywhere accessible to the Crow server:
+
+| Deployment Option | Notes |
+| ----------------- | ----- |
+| Kubernetes pod | Same cluster as Crow, use internal service URL |
+| Standalone VM | Any HTTP-accessible server |
+| Serverless | AWS Lambda, Cloud Functions, etc. |
+| Sidecar | Container alongside Crow server |
+
+**Setup:**
+
+1. Deploy your config service (see example below)
+2. Ensure it's reachable from the Crow server
+3. Set `CROW_CONFIG_SERVICE_ENDPOINT` to the service URL
+4. Restart Crow server
+
+```yaml
+# Example: Crow server configuration
+CROW_CONFIG_SERVICE_ENDPOINT=http://config-service.crow.svc:8080
+```
+
+### Request Format
+
+```json
+{
+  "repo": {
+    "id": 100,
+    "name": "my-repo",
+    "owner": "my-org",
+    "private": true,
+    "default_branch": "main"
+  },
+  "pipeline": {
+    "event": "push",
+    "branch": "main",
+    "commit": "abc123...",
+    "author": "user",
+    "message": "commit message",
+    "changed_files": ["src/main.go", "pkg/api/handler.go"]
+  },
+  "netrc": {
+    "machine": "github.com",
+    "login": "x-token",
+    "password": "ghp_..."
+  }
+}
+```
+
+### Response Format
+
+Return HTTP 200 with new configs:
+
+```json
+{
+  "configs": [
+    {
+      "name": ".crow/build.yaml",
+      "data": "steps:\n  - name: build\n    image: golang:1.22\n    commands:\n      - go build ./..."
+    }
+  ]
+}
+```
+
+Return HTTP 204 (no body) to use the existing repository configs.
+
+### Example: Dynamic Config Service
+
+A simple Go service that injects security scanning for `main` branch pushes:
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "net/http"
+    "strings"
+)
+
+type Request struct {
+    Repo     struct{ Name string } `json:"repo"`
+    Pipeline struct {
+        Event        string   `json:"event"`
+        Branch       string   `json:"branch"`
+        ChangedFiles []string `json:"changed_files"`
+    } `json:"pipeline"`
+}
+
+type Response struct {
+    Configs []struct {
+        Name string `json:"name"`
+        Data string `json:"data"`
+    } `json:"configs"`
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    var req Request
+    json.NewDecoder(r.Body).Decode(&req)
+
+    // Only modify main branch pushes
+    if req.Pipeline.Branch != "main" || req.Pipeline.Event != "push" {
+        w.WriteHeader(http.StatusNoContent) // Use existing config
+        return
+    }
+
+    // Inject security scanning step
+    config := `steps:
+  - name: security-scan
+    image: aquasec/trivy
+    commands:
+      - trivy fs --severity HIGH,CRITICAL .
+  - name: build
+    image: golang:1.22
+    commands:
+      - go build ./...
+`
+    resp := Response{
+        Configs: []struct {
+            Name string `json:"name"`
+            Data string `json:"data"`
+        }{{Name: ".crow/build.yaml", Data: config}},
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(resp)
+}
+
+func main() {
+    http.HandleFunc("/", handler)
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+:::caution
+The config service receives repository credentials (`netrc`) and can execute arbitrary code via modified pipelines. Only deploy trusted, secured services.
+:::
+
+## Scheduling
+
+When multiple agents are equally eligible for a workflow (matching labels, tied on priority), the server distributes work according to `CROW_SCHEDULING_STRATEGY`.
+
+| Variable                   | Default        | Description                                                        |
+| -------------------------- | -------------- | ----------------------------------------------------------------- |
+| `CROW_SCHEDULING_STRATEGY` | `least-loaded` | One of `least-loaded`, `pack`, `round-robin`, `random`.           |
+
+See [Scheduling strategy](/dev/configuration/agent#scheduling-strategy) for what each strategy does.
+This applies to both single-instance and High Availability deployments.
+
+## Metrics
+
+| Variable                        | Default | Description                                                                                                       |
+| ------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `CROW_METRICS_PRESERVE_DELETED` | `true`  | Keep pipelines/workflows for historic metrics when a repo or org is removed. Disable to purge them on removal.   |
+
+Pipelines carry a denormalized organization and repository name, so the metrics dashboard keeps showing the correct labels even after a repo or org is renamed or removed (no more "Unknown" bars).
+See [Metrics dashboard](/dev/usage/metrics) for the dashboard and the chart builder.
+
+## Custom UI themes
+
+Admins can ship their own UI themes, for example in corporate colors, by pointing `CROW_CUSTOM_THEMES` at one or more CSS or JSON files, given as paths or URLs.
+The themes appear in every user's theme selection under **Instance themes**.
+
+| Variable             | Default | Description                                   |
+| -------------------- | ------- | --------------------------------------------- |
+| `CROW_CUSTOM_THEMES` | none    | Comma-separated paths or URLs of theme files. |
+
+See [Admin-provided themes](/dev/usage/appearance/#admin-provided-themes) for the supported formats.
+
+## High Availability
+
+Run multiple server instances with PostgreSQL or MySQL for HA.
+The database coordinates queue processing and cron execution.
+
+```yaml
+CROW_ENABLE_HA=true
+```
+
+| Variable              | Default | Description        |
+| --------------------- | ------- | ------------------ |
+| `CROW_QUEUE_LOCK_TTL` | `30s`   | Queue lock timeout |
+| `CROW_CRON_LOCK_TTL`  | `90s`   | Cron lock timeout  |
+
+With Helm, set `server.replicaCount > 1`.
+
+## Approval gates
+
+Workflow-level approval gates pause a pipeline mid-way until a human approves the next workflow.
+The server applies the following defaults and bounds.
+
+| Variable                             | Default | Description                                                       |
+| ------------------------------------ | ------- | ----------------------------------------------------------------- |
+| `CROW_APPROVAL_GATE_TIMEOUT_DEFAULT` | `24h`   | Default timeout when YAML omits `approval.timeout`.               |
+| `CROW_APPROVAL_GATE_TIMEOUT_MAX`     | `168h`  | Hard upper bound; YAML values above fail lint.                    |
+| `CROW_APPROVAL_GATE_SWEEP_INTERVAL`  | `30s`   | How often the timeout sweeper runs (min 5s).                      |
+
+See [Approval gates](/dev/usage/approvals/) for the feature overview.
+
+## Build cache
+
+Pipelines can restore and save workspace paths between runs with a `cache` section.
+Caching is disabled until a storage backend is set:
+
+```bash
+CROW_CACHE_BACKEND=s3
+CROW_CACHE_S3_ENDPOINT=minio.example.com:9000
+CROW_CACHE_S3_BUCKET=crow-cache
+CROW_CACHE_S3_ACCESS_KEY=crow
+CROW_CACHE_S3_SECRET_KEY=secret
+CROW_CACHE_S3_PATH_STYLE=true
+```
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `CROW_CACHE_BACKEND` | none | `local` or `s3`; empty disables caching |
+| `CROW_CACHE_LOCAL_PATH` | `/var/lib/crow/cache` | Directory for the `local` backend |
+| `CROW_CACHE_MAX_REPO_SIZE` | `10GiB` | Size limit per repository, `0` for unlimited |
+| `CROW_CACHE_MAX_ORG_SIZE` | `0` | Default size limit per user or organization, `0` for unlimited |
+| `CROW_CACHE_MAX_ORG_EGRESS` | `0` | Default restored bytes per user or organization and month, `0` for unlimited |
+| `CROW_CACHE_ALLOW_USER_BUCKETS` | `true` | Let users and organizations connect their own S3 bucket |
+| `CROW_CACHE_ALLOW_PRIVATE_BUCKET_ENDPOINTS` | `false` | Allow those buckets on internal addresses |
+| `CROW_CACHE_MAX_TOTAL_SIZE` | `0` | Size limit across all repositories, `0` for unlimited |
+| `CROW_CACHE_TTL` | `168h` | Remove caches not restored for this long |
+
+Cache steps reach the server at `CROW_HOST`, so that URL must be reachable from pipeline steps.
+With `s3`, steps also transfer archives directly to the S3 endpoint via presigned URLs.
+See the [cache environment variables](/dev/configuration/env-vars/cache/) for all settings and [build caching](/dev/usage/caching/) for the pipeline syntax.
+
+## Email Notifications
+
+Crow can send email notifications to commit authors when pipelines complete.
+This requires an SMTP server.
+
+```bash
+CROW_SMTP_HOST=smtp.example.com
+CROW_SMTP_PORT=587
+CROW_SMTP_FROM=crow@example.com
+CROW_SMTP_USERNAME=crow@example.com
+CROW_SMTP_PASSWORD=secret
+CROW_SMTP_AUTH_TYPE=LOGIN
+```
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `CROW_SMTP_HOST` | Yes | — | SMTP server hostname |
+| `CROW_SMTP_PORT` | No | `587` | SMTP port (465=implicit TLS, 25=opportunistic TLS, other=mandatory TLS) |
+| `CROW_SMTP_FROM` | Yes | — | Sender email address |
+| `CROW_SMTP_USERNAME` | No | — | SMTP username (enables authentication) |
+| `CROW_SMTP_PASSWORD` | No | — | SMTP password |
+| `CROW_SMTP_AUTH_TYPE` | No | `LOGIN` | Auth mechanism: `LOGIN`, `PLAIN`, `CRAM-MD5`, `AUTO` (auto-discover), or `NONE` |
+
+Once configured, notifications must be enabled per-repository in **Repository Settings > Notifications**.
+The SMTP configuration can be verified in **Admin Settings > Notifications**, which includes a test email button.
+
+## Forgejo CI quota enforcement and accounting
+
+Crow checks CI allowances before dispatching workflows and reports completed runtime to the external CI quota ledger provided by the CodeFloe Forgejo fork.
+Upstream Forgejo does not provide this API.
+Configure both values to enable enforcement and reporting:
+
+```shell
+CROW_CI_QUOTA_URL=https://code.example.com
+CROW_CI_QUOTA_TOKEN=secret-reporter-token
+```
+
+| Environment variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `CROW_CI_QUOTA_URL` | Yes | — | Base URL of the Forgejo instance that owns the quota ledger |
+| `CROW_CI_QUOTA_TOKEN` | Yes | — | Dedicated external CI reporter token configured in Forgejo |
+
+Quota denials fail the affected workflow before it starts, with the reason visible in its error.
+Failed quota checks are retried up to three attempts within 20 seconds; if the service remains unavailable, work does not start.
+See [CI quota enforcement and accounting](/dev/configuration/env-vars/ci-quota/) for runner-class limits and retry behavior.
+
+Each workflow is reported separately after it finishes, excluding queue time.
+Reports are idempotent and are classified as Linux, Windows, or macOS from the workflow platform.
+
+See [email notifications](/dev/usage/notifications/) for full usage documentation.
+
+## Maintenance
+
+Built-in maintenance jobs accessible via Settings → Maintenance.
+The Action Log has a separate tab for each maintenance action, with up to 50 recent log lines per tab.
+Select a tab to view its logs or use **Wipe Log** to clear that tab from the current view.
+
+![Maintenance Panel](img/maintenance-panel.png)
+
+### Vacuum
+
+Reclaims database space after log deletion.
+
+### Kubernetes Cleanup
+
+Removes Crow-labeled resources (PVCs, secrets, services) older than the configured age, which defaults to 7 days.
+Configure the following on the **server**, using the namespaces where agents create resources:
+
+```shell
+CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED=true
+CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE=168h
+CROW_MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES=git,crow-42
+```
+
+Without an explicit namespace list, cleanup uses the server's namespace.
+The server's Kubernetes credentials must have `list` and `delete` permission for secrets, services, and PVCs in every configured namespace.
+Agents' permissions do not grant the server access, and cleanup does not discover other agent clusters.
+List or deletion errors mark the maintenance run as failed while cleanup continues for other resources and namespaces.
+Use the maintenance dry run to verify the selected resources before deleting old leftovers.
+
+Workflow teardown also deletes step and registry secrets after cancellation, setup failures, and detached steps.
+Scheduled cleanup handles leftovers from interruptions such as an agent crash.
+Only resources with `app.kubernetes.io/managed-by=crow` are eligible for scheduled cleanup.
+For unlabeled legacy secrets, verify ownership and that no running workflow needs them before explicitly labeling them for cleanup or deleting them manually.
+Names ending in `-step-secret` alone are not proof of ownership.

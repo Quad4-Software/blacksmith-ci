@@ -1,0 +1,135 @@
+---
+title: "Backend: Docker"
+---
+
+Docker backend configuration variables for agents.
+
+The backend uses the supported Moby API and client modules.
+It negotiates the Docker API version automatically unless `CROW_BACKEND_DOCKER_API_VERSION` (or `DOCKER_API_VERSION`) pins a version.
+The minimum supported Docker API version is `1.40`.
+Pipeline `dns` entries must be IPv4 or IPv6 addresses; invalid addresses fail the step before container creation.
+
+## Network
+
+### BACKEND_DOCKER_NETWORK
+
+- Name: `CROW_BACKEND_DOCKER_NETWORK`
+- Description: Docker network which will be attached to all pipeline steps. Careful: this allows containers of different steps to communicate with each other.
+- Default: none
+
+---
+
+### BACKEND_DOCKER_ENABLED_IPV6
+
+- Name: `CROW_BACKEND_DOCKER_ENABLED_IPV6`
+- Description: Whether to enable IPv6 support in Docker containers. Requires the Docker daemon to be configured with IPv6 support.
+- Default: `false`
+
+---
+
+## Volumes
+
+### BACKEND_DOCKER_VOLUMES
+
+- Name: `CROW_BACKEND_DOCKER_VOLUMES`
+- Description: Additional volumes to mount in Docker containers.
+- Default: none
+
+---
+
+### BACKEND_DOCKER_WORKSPACE_INIT_IMAGE
+
+- Name: `CROW_BACKEND_DOCKER_WORKSPACE_INIT_IMAGE`
+- Description: Image used to seed deterministic workspace ownership before the first step runs.
+  A short-lived container makes the shared workspace volume world-writable with the sticky bit (`1777`, like `/tmp`) so its ownership no longer depends on whether the first pipeline item is a step or a plugin.
+  Set to an empty value to disable workspace initialization.
+- Default: `docker.io/library/busybox:1.37.0`
+
+---
+
+## Isolation
+
+### BACKEND_DOCKER_ISOLATION
+
+- Name: `CROW_BACKEND_DOCKER_ISOLATION`
+- Description: Isolation mode for Windows containers.
+  `process` runs the container in the host kernel, `hyperv` gives it its own kernel inside a lightweight Hyper-V VM, and `default` leaves the choice to the daemon (process isolation on Windows Server, Hyper-V on Windows client).
+  Leave this empty to send no isolation mode at all, which the daemon also treats as `default`.
+  This is a Windows-only setting: an agent that sets `process` or `hyperv` while talking to a non-Windows daemon fails to start rather than silently running steps in the host kernel.
+- Default: none
+
+---
+
+## Resource Limits
+
+### BACKEND_DOCKER_LIMIT_MEM
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_MEM`
+- Description: Maximum memory allowed for Docker containers. No limit is applied if set to `0`. This limit also caps the size of [`tmpfs`](/dev/usage/workflow-syntax/#tmpfs) mounts — if a step or service uses `tmpfs` without an explicit `size=` option, the size is automatically set to this value.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_MEM_SWAP
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_MEM_SWAP`
+- Description: Whether to limit memory swap usage in Docker containers. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_SHM_SIZE
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_SHM_SIZE`
+- Description: Whether to limit shared memory size in Docker containers. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_CPU_QUOTA
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_CPU_QUOTA`
+- Description: Microseconds per CPU quota before throttling takes place. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_CPU_SHARES
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_CPU_SHARES`
+- Description: CPU shares (relative weight) for Docker containers. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_CPU_SET
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_CPU_SET`
+- Description: Comma-separated list of specific CPU cores the pipelines are limited to. No limit is applied if set to `0`.
+- Default: none
+
+---
+
+## Proxy Settings
+
+### BACKEND_HTTP_PROXY
+
+- Name: `CROW_BACKEND_HTTP_PROXY`
+- Description: If set, pass the environment variable down as "HTTP_PROXY" to steps.
+- Default: none
+
+---
+
+### BACKEND_HTTPS_PROXY
+
+- Name: `CROW_BACKEND_HTTPS_PROXY`
+- Description: If set, pass the environment variable down as "HTTPS_PROXY" to steps.
+- Default: none
+
+---
+
+### BACKEND_NO_PROXY
+
+- Name: `CROW_BACKEND_NO_PROXY`
+- Description: If set, pass the environment variable down as "NO_PROXY" to steps.
+- Default: none

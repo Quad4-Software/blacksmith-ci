@@ -1,0 +1,93 @@
+---
+title: "MCP Server for Coding Agents"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+`crow mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio.
+It lets a coding agent such as Claude Code, Codex or Cursor find the pipeline for the code it just pushed, read only the part of the logs that matters, and wait for the result of a fix.
+It is a debugging tool, not a general administration interface: it cannot touch secrets, registries, users or server settings.
+
+## Setup
+
+<Steps>
+
+1. **Install the CLI**
+
+    `crow mcp` is part of the regular `crow` CLI; see [CLI installation](/dev/usage/cli/).
+
+2. **Configure instances**
+
+    With a single Crow server, the existing `CROW_SERVER` and `CROW_TOKEN` variables are enough and no config file is needed.
+
+    To use several servers from one agent session, create `$XDG_CONFIG_HOME/crow/mcp.yaml` (usually `~/.config/crow/mcp.yaml`):
+
+    ```yaml
+    instances:
+      - name: codefloe
+        url: https://ci.codefloe.com
+        # forge hosts whose repositories this server builds
+        forge_hosts: [codefloe.com]
+        token_env: CROW_CODEFLOE_TOKEN
+      - name: company
+        url: https://ci.example.com
+        forge_hosts: [git.example.com]
+        # any command that prints the token, e.g. from a password manager or vault
+        token_command: ["pass", "show", "crow/company"]
+    ```
+
+    Each instance needs exactly one of `token_env` or `token_command`.
+    `token_command` runs on demand, its output is kept in memory only, and it is re-run once if the server rejects the token.
+    The config path can be changed with `--config` or `CROW_MCP_CONFIG`.
+
+3. **Register the server with your agent**
+
+    For Claude Code:
+
+    ```sh
+    claude mcp add crow -- crow mcp
+    ```
+
+    Other agents take the same command (`crow mcp`) in their MCP server configuration.
+    Start the agent from inside the repository so the server can see the git checkout.
+
+</Steps>
+
+## Finding the pipeline
+
+Every pipeline-scoped tool accepts the same target, resolved in this order:
+
+- `url`: a Crow web URL such as `https://ci.example.com/repos/3/pipeline/12/4`, copied from the browser.
+  The host must belong to a configured instance; other hosts are never contacted.
+- `instance` and `repo` (numeric id preferred, or `owner/name`), with an optional pipeline `number`.
+- Nothing: the git checkout of the working directory is used.
+  The server picks the instance by the remote's host (`upstream` first, then `origin`, then any other remote), looks up the repository and returns the newest pipeline per event for the `HEAD` commit, typically a push and a pull request pipeline.
+  If there is none yet, it says so and shows the latest pipelines for the branch.
+
+## Tools
+
+| Tool | What it does |
+| --- | --- |
+| `get_pipeline` | Pipeline status with failed steps first, each with a link to the step |
+| `get_step_logs` | The last 200 lines of a step log (`tail`, max 500), or the matches of a regular expression (`grep`, with `context` lines); defaults to the first failed step |
+| `list_pipelines` | Recent pipelines of a repository, optionally filtered by `branch` and `status` |
+| `wait_for_pipeline` | Waits until the pipeline finishes (default 10 minutes, max 30) and returns its summary; without a target it also waits for the pipeline of `HEAD` to appear after a push |
+| `lint_config` | Lints local config files in the working directory (default `.crow/`) |
+| `list_instances` | Shows the configured instances, never their tokens |
+
+Two more tools are only available when the server is started with `--allow-write` (or `CROW_MCP_ALLOW_WRITE=true`):
+
+| Tool | What it does |
+| --- | --- |
+| `restart_pipeline` | Restarts a pipeline and returns the link of the new run |
+| `cancel_pipeline` | Cancels a running pipeline |
+
+There is deliberately no tool to approve pipelines: approval is the human gate for untrusted changes.
+
+## Security notes
+
+- Build logs can contain text controlled by anyone who can open a pull request.
+  The server strips terminal escape sequences, wraps log output in `<untrusted-log>` blocks and tells the agent not to follow instructions inside them.
+- Write tools are off by default; enable them only for agents you trust to restart or cancel builds.
+- Tokens are never written to disk by `crow mcp` and never included in tool output.
+- `lint_config` only reads `.yaml`, `.yml` and `.jsonnet` files inside the working directory.

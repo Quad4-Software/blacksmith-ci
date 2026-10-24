@@ -1,0 +1,159 @@
+---
+title: "Appearance and theme overrides"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+The **Appearance** section of your user settings controls how the Crow UI looks in your browser.
+All appearance settings are stored in the browser's local storage, so they apply per browser and are not synced to your account.
+
+## Themes and color mode
+
+Crow ships several built-in themes, and the instance admin can add more (listed under **Instance themes**).
+You can pick one theme for light mode and another for dark mode, and choose whether the color mode follows your system or is fixed to light or dark.
+
+## Theme overrides
+
+Theme overrides let you change individual colors of the selected themes without writing a whole theme.
+They use the CSS custom property format of [shadcn/ui](https://ui.shadcn.com/docs/theming), so output from theme generators such as [tweakcn](https://tweakcn.com) can be pasted as is.
+
+<Steps>
+
+1. Open your user settings and scroll to **Appearance > Theme Overrides**.
+
+2. Enter CSS variables, or click **Insert current theme** to start from the full variable set of your selected themes.
+
+3. Check the summary below the editor, which lists how many variables will be applied and anything that is ignored.
+
+4. Click **Apply** to store the overrides and restyle the UI.
+
+</Steps>
+
+Variables in a `:root` block override the light theme, variables in a `.dark` block override the dark theme:
+
+```css
+:root {
+  --primary: #7c3aed;
+  --sidebar: #ede9fe;
+}
+
+.dark {
+  --primary: #a78bfa;
+}
+```
+
+The overrides are layered on top of whichever theme is selected, so switching themes keeps them in effect.
+To remove all overrides, clear the editor and click **Apply**.
+
+### Accepted input
+
+- Light mode blocks: `:root`, `html`, `.light` and `[data-theme="light"]`.
+- Dark mode blocks: `.dark`, `:root.dark`, `html.dark` and `[data-theme="dark"]`.
+- Comments, `!important` and wrapping `@layer` blocks are allowed.
+- Values must be valid CSS colors, for example `#7c3aed`, `rgb(124 58 237)` or `oklch(0.54 0.25 293)`.
+
+Other selectors (for example the `@theme inline` block tweakcn emits), properties that are not theme variables (such as `--radius` or `--font-sans`) and invalid colors are ignored and listed below the editor.
+
+### Supported variables
+
+| Variable                                                          | Used for                               |
+| ----------------------------------------------------------------- | -------------------------------------- |
+| `--background`, `--foreground`                                    | Page background and default text       |
+| `--card`, `--card-foreground`                                     | Cards and panels                       |
+| `--popover`, `--popover-foreground`                               | Dropdowns, menus and tooltips          |
+| `--primary`, `--primary-foreground`                               | Primary buttons and highlights         |
+| `--secondary`, `--secondary-foreground`                           | Secondary buttons                      |
+| `--muted`, `--muted-foreground`                                   | Subtle backgrounds and secondary text  |
+| `--accent`, `--accent-foreground`                                 | Hover and selection states             |
+| `--destructive`, `--destructive-foreground`                       | Destructive actions and errors         |
+| `--border`, `--input`, `--ring`                                   | Borders, input borders and focus rings |
+| `--chart-1` to `--chart-5`                                        | Metrics charts                         |
+| `--sidebar`, `--sidebar-foreground`                               | Sidebar background and text            |
+| `--sidebar-primary`, `--sidebar-primary-foreground`               | Active sidebar items                   |
+| `--sidebar-accent`, `--sidebar-accent-foreground`                 | Hovered sidebar items                  |
+| `--sidebar-border`, `--sidebar-ring`                              | Sidebar borders and focus rings        |
+
+:::note
+Theme overrides are a per-user setting.
+To offer a theme to every user of an instance, see [Admin-provided themes](#admin-provided-themes).
+:::
+
+## Admin-provided themes
+
+Instance admins can add their own themes, or restyle a bundled one, with [`CROW_CUSTOM_THEMES`](/dev/configuration/env-vars/server/#custom_themes).
+The variable takes a comma-separated list of sources, each a file path or an `http(s)://` URL:
+
+```sh
+CROW_CUSTOM_THEMES=/etc/crow/themes.json,https://example.com/themes/acme-corp.css
+```
+
+Each source is either CSS or JSON, detected from its content.
+
+### CSS
+
+A CSS source defines one theme, in the same format as [theme overrides](#theme-overrides): a `:root` block for light mode and a `.dark` block for dark mode.
+
+```css
+/* acme-corp.css */
+:root {
+  --primary: #7c3aed;
+  --sidebar-primary: #7c3aed;
+}
+
+.dark {
+  --primary: #a78bfa;
+}
+```
+
+The id and name come from the file name: `acme-corp.css` becomes the theme `acme-corp`, shown as "Acme Corp".
+A leading `theme-` is dropped, so `theme-acme-corp.css` gives the same result.
+The theme inherits unset colors from `crow-ci`, or from the bundled theme of the same name, which it then replaces.
+
+### JSON
+
+A JSON source holds an array of themes, a single theme, or a shadcn/tweakcn registry item such as `https://tweakcn.com/r/themes/<name>.json`:
+
+```json
+[
+  {
+    "id": "acme",
+    "name": "ACME Corp",
+    "description": "ACME corporate colors",
+    "base": "crow-ci",
+    "light": {
+      "primary": "#7c3aed",
+      "sidebar-primary": "#7c3aed"
+    },
+    "dark": {
+      "primary": "#a78bfa"
+    }
+  }
+]
+```
+
+| Field         | Required | Description                                                                                          |
+| ------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `id`          | yes¹     | Unique identifier, lowercase letters, digits, `-` and `_`. Stored in the user's browser on selection. |
+| `name`        | no       | Name shown in the theme selection. Defaults to the id.                                               |
+| `description` | no       | Short description of the theme.                                                                      |
+| `base`        | no       | Id of a bundled theme to take unset variables from. Defaults to `crow-ci`.                           |
+| `light`       | no       | Light mode colors, keyed by [variable](#supported-variables) name with or without the leading `--`.  |
+| `dark`        | no       | Dark mode colors, in the same format as `light`.                                                     |
+| `cssVars`     | no       | Alternative to `light` and `dark`: the `cssVars` object of a shadcn/tweakcn registry theme.          |
+
+¹ Without an `id`, a `name` made only of id characters is used as id, as in registry items, which are shown under their `title`.
+Otherwise a source with a single theme takes its id from the file name, as for CSS.
+
+### Rules
+
+- A theme must define at least one theme color.
+  Other variables, such as fonts or `--radius` in tweakcn output, are ignored.
+- Theme ids must be unique across all sources.
+- To restyle a bundled theme for everyone, use its id, for example `crow-ci` for the default theme.
+  The theme then inherits from the bundled version, so only the changed colors need to be listed.
+- The bundled theme ids are `crow-ci`, `catppuccin`, `claude`, `doom-64`, `modern-minimal`, `mono`, `ocean-breeze`, `t3-chat` and `vercel`.
+- Each source may be at most 1 MiB.
+
+Sources are read once at startup, so restart the server after changing one.
+If a file cannot be read or a source is invalid, the server refuses to start and logs the reason.
+If a URL cannot be fetched (network error, timeout after 10 seconds, or a status other than 200), the server logs an error and starts without the themes from that URL.

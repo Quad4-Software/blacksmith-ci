@@ -1,0 +1,92 @@
+---
+title: Instance roles
+---
+
+Instance roles give a user part of the admin powers without making them an admin.
+There are three roles: `operator`, `secrets-manager` and `auditor`.
+`admin` stays a separate flag on the user and holds every permission.
+
+Roles only apply to instance-wide settings and pages.
+Access to repositories and organizations stays synced from the forge, and roles do not change it.
+
+## Roles and permissions
+
+| Capability                                                                            | admin | operator | secrets-manager | auditor |
+| ------------------------------------------------------------------------------------- | ----- | -------- | --------------- | ------- |
+| Read users, organizations and repositories                                            | yes   |          |                 | yes     |
+| Read the queue                                                                        | yes   | yes      |                 | yes     |
+| Pause and resume the queue, cancel tasks                                              | yes   | yes      |                 |         |
+| Watch agent and autoscaler log streams                                                | yes   | yes      |                 | yes     |
+| Edit and delete agents and autoscalers                                                | yes   | yes      |                 |         |
+| Read maintenance stats, logs and settings                                             | yes   | yes      |                 | yes     |
+| See instance-wide metrics                                                             | yes   | yes      |                 | yes     |
+| Create, edit and delete global secrets and global registries, view global secret values | yes |          | yes             |         |
+| Create agents and autoscalers, issue autoscaler tokens                                | yes   |          |                 |         |
+| Manage forges and users, delete organizations, repair repositories                    | yes   |          |                 |         |
+| Change or run maintenance                                                             | yes   |          |                 |         |
+| SMTP settings and test, log level, debug                                              | yes   |          |                 |         |
+
+Creating agents and autoscalers, and issuing autoscaler tokens, stays admin-only.
+A new agent or autoscaler token can register an agent that receives every repository's workflows and secrets.
+
+## Assigning roles
+
+An admin can assign roles in three ways.
+
+- **Admin UI:** open **Admin Settings > Entities** in the sidebar and choose **Edit roles** in the menu of the user's row.
+- **CLI:** pass `--role` when adding or updating a user.
+  `--role` is repeatable and replaces the user's roles, so a role mapped from the identity provider that is not listed is removed.
+  `--no-roles` removes every role.
+  `--role` and `--no-roles` cannot be combined.
+
+  ```sh
+  # Add a user with one role
+  crow admin user add alice --role operator
+  # Replace the roles of an existing user
+  crow admin user update alice --role operator --role auditor
+  # Remove all roles
+  crow admin user update alice --no-roles
+  ```
+
+- **API:** set the `roles` field on `POST /api/v1/users` or `PATCH /api/v1/users/{login}`.
+  Omitting the field keeps the current roles.
+  Otherwise the list replaces the user's roles.
+  Unknown roles return `400`, and so does a role managed by the identity provider that the user does not already hold.
+
+## Roles from the identity provider
+
+With [single sign-on](/dev/configuration/oidc/) or [LDAP sign-in](/dev/configuration/ldap/), the identity provider or directory can assign roles through group membership.
+Set one or more of these variables to lists of group names, like [`CROW_OIDC_ADMIN_GROUPS`](/dev/configuration/env-vars/oidc/):
+
+- `CROW_OIDC_OPERATOR_GROUPS`
+- `CROW_OIDC_SECRETS_MANAGER_GROUPS`
+- `CROW_OIDC_AUDITOR_GROUPS`
+
+LDAP has the same variables with the `CROW_LDAP_` prefix, for example [`CROW_LDAP_ADMIN_GROUPS`](/dev/configuration/env-vars/ldap/):
+
+- `CROW_LDAP_OPERATOR_GROUPS`
+- `CROW_LDAP_SECRETS_MANAGER_GROUPS`
+- `CROW_LDAP_AUDITOR_GROUPS`
+
+The LDAP lists are separated by semicolons and take full group DNs, which [LDAP sign-in](/dev/configuration/ldap/#groups-admins-and-roles) recommends over bare names.
+
+A mapped role is recalculated at every OIDC or LDAP sign-in, so removing a user from the group revokes the role at their next sign-in.
+A mapped role cannot be newly assigned by hand in the UI, CLI or API.
+An admin can still remove one that a user holds, for example a role assigned by hand before the mapping existed.
+Forge sign-in never changes roles.
+
+When any of the OIDC variables is set and the ID token has no groups claim, Crow reads the groups from the userinfo endpoint.
+LDAP reads the groups from the `memberOf` attribute or a group search, see [LDAP sign-in](/dev/configuration/ldap/#groups-admins-and-roles).
+
+When OIDC and LDAP are both enabled, each provider sets only the roles it maps, at its own sign-in.
+If both map the same role, the provider used for the last sign-in wins, so map each role in one place.
+
+## Access tokens
+
+Requests made with a personal access token always act with the owner's current roles.
+Removing a role therefore takes effect immediately, even for tokens created earlier.
+
+- Creating a token with the `admin:read` scope needs any role.
+- Creating a token with the `admin:write` scope needs a role that can change something (`operator` or `secrets-manager`), or admin.
+
+The scopes limit what a token can reach on top of the roles, see [Access tokens](/dev/usage/access-tokens/) for the scope each endpoint needs.

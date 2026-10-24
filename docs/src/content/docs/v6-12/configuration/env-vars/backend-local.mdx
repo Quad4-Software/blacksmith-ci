@@ -1,0 +1,51 @@
+---
+title: 'Backend: Local'
+---
+
+Local backend configuration variables for agents.
+
+## BACKEND_LOCAL_TEMP_DIR
+
+- Name: `CROW_BACKEND_LOCAL_TEMP_DIR`
+- Description: Directory in which pipelines are executed
+- Default: `$TMPDIR`
+
+Each workflow gets its own directory below this one, and steps run with `$TMPDIR` pointing inside it rather than at the shared temp directory.
+On Windows, `TMP` and `TEMP` point there as well.
+
+## BACKEND_LOCAL_SANDBOX_LEVEL
+
+- Name: `CROW_BACKEND_LOCAL_SANDBOX_LEVEL`
+- Description: Process isolation level on macOS, one of `none`, `standard` or `strict`
+- Default: `standard`
+
+The standard macOS sandbox also permits the agent account’s system temporary directory and build caches, even when the agent starts with custom `HOME` or `TMPDIR` values.
+This lets Apple toolchain launchers such as `xcrun` and account-based tool installations write their caches while keeping other workflows’ directories isolated.
+
+Implemented with the macOS `sandbox-exec` utility, and a no-op on Linux and Windows.
+See [macOS Sandbox Security Levels](/dev/installation/binary/#macos-sandbox-security-levels) for what each level allows.
+
+## BACKEND_LOCAL_USE_HOST_HOME
+
+- Name: `CROW_BACKEND_LOCAL_USE_HOST_HOME`
+- Description: Run steps with the agent account's own home instead of a per-workflow one
+- Default: `false`
+
+Needed by tools that resolve the home directory from the account rather than from `$HOME`, such as Xcode reading provisioning profiles and writing DerivedData.
+Trades home isolation between workflows for compatibility with them.
+
+## Process cleanup
+
+On macOS and Linux, the local backend stops each step's process group on cancellation and stops remaining workflow process groups before deleting the workspace.
+It also assigns an inherited process marker to each step so detached tools such as sccache can be found after their launcher exits.
+Cleanup waits for processes to exit and reports errors before removing workflow directories.
+On Linux the marker is read from `/proc/<pid>/environ`, so it only finds processes running as the agent's user.
+Concurrent workflows have independent markers and process groups.
+
+This is cooperative cleanup, not a security boundary.
+Processes that detach and discard their marker, change user, or hide their environment from the agent may escape discovery.
+Use VM or container isolation for untrusted jobs.
+
+Compiler-cache integrations should additionally isolate their daemon per build and stop it on exit.
+Crow's cleanup handles leftovers; it cannot make a shared daemon use two different macOS workflow sandboxes at the same time.
+The sccache plugin's native `sccache-run` wrapper provides this isolation.
