@@ -26,7 +26,7 @@ import (
 )
 
 func TestUsers(t *testing.T) {
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity), new(model.PipelineWatch), new(model.WatchWorkflowState))
 	defer closer()
 
 	count, err := store.GetUserCount()
@@ -210,7 +210,7 @@ func TestCreateUserWithExistingOrg(t *testing.T) {
 }
 
 func TestUserRolesRoundTrip(t *testing.T) {
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity), new(model.PipelineWatch), new(model.WatchWorkflowState))
 	defer closer()
 
 	u := &model.User{Login: "roles", Hash: "h-roles", Roles: model.JSONSliceString{"auditor", "operator"}}
@@ -225,4 +225,40 @@ func TestUserRolesRoundTrip(t *testing.T) {
 	got, err = store.GetUser(u.ID)
 	require.NoError(t, err)
 	assert.Empty(t, got.Roles)
+}
+
+func TestDeleteUser_RemovesWatches(t *testing.T) {
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity), new(model.PipelineWatch), new(model.WatchWorkflowState))
+	defer closer()
+
+	user := &model.User{Login: "joe", Hash: "hash-joe", Email: "joe@example.com"}
+	require.NoError(t, store.CreateUser(user))
+	other := &model.User{Login: "jane", Hash: "hash-jane", Email: "jane@example.com"}
+	require.NoError(t, store.CreateUser(other))
+
+	require.NoError(t, store.WatchCreate(&model.PipelineWatch{UserID: user.ID, RepoID: 1, Event: model.EventPush, Target: "main"}))
+	require.NoError(t, store.WatchCreate(&model.PipelineWatch{UserID: other.ID, RepoID: 1, Event: model.EventPush, Target: "main"}))
+	require.NoError(t, store.WatchCreate(&model.PipelineWatch{UserID: user.ID, RepoID: 1, Event: model.EventTag}))
+	rows := func() []*model.WatchWorkflowState {
+		return []*model.WatchWorkflowState{{WorkflowName: "build", Failing: true, PipelineID: 10, PipelineNumber: 3}}
+	}
+	require.NoError(t, store.WatchStateReplace(1, model.EventPush, "main", rows()))
+	require.NoError(t, store.WatchStateReplace(1, model.EventTag, "", rows()))
+
+	require.NoError(t, store.DeleteUser(user))
+
+	// State of a key only the deleted user watched is removed.
+	tagState, err := store.WatchStateList(1, model.EventTag, "")
+	require.NoError(t, err)
+	assert.Empty(t, tagState)
+	pushState, err := store.WatchStateList(1, model.EventPush, "main")
+	require.NoError(t, err)
+	assert.Len(t, pushState, 1)
+
+	gone, err := store.WatchListByUser(user.ID)
+	require.NoError(t, err)
+	assert.Empty(t, gone)
+	kept, err := store.WatchListByUser(other.ID)
+	require.NoError(t, err)
+	assert.Len(t, kept, 1)
 }

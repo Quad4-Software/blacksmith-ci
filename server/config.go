@@ -34,6 +34,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/services/log"
 	"codefloe.com/crowci/crow/v6/server/services/notification"
 	"codefloe.com/crowci/crow/v6/server/services/permissions"
+	"codefloe.com/crowci/crow/v6/server/services/watch"
 	"codefloe.com/crowci/crow/v6/server/theme"
 )
 
@@ -50,6 +51,7 @@ var Config = struct {
 		Store                services.Store
 		IntegrationService   integration.Service
 		NotificationService  notification.Service
+		WatchService         watch.Service
 		CIQuotaReporter      ciquota.Reporter
 		ProcLogReceiver      *proclog.Receiver
 		ProcLogStream        *proclog.Stream

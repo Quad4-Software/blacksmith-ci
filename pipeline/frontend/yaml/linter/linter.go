@@ -602,7 +602,20 @@ func (l *Linter) lintDeprecations(config *WorkflowConfig) (err error) {
 		return err
 	}
 
-	return nil
+	if parsed.Notify != nil {
+		err = errors.Join(err, &errorTypes.PipelineError{
+			Type:    errorTypes.PipelineErrorTypeDeprecation,
+			Message: "The `notify:` block is deprecated and ignored. Watch the pipeline in the Crow UI instead.",
+			Data: pipelineErrors.DeprecationErrorData{
+				File:  config.File,
+				Field: "notify",
+				Docs:  "https://docs.crowci.com/dev/usage/notifications/",
+			},
+			IsWarning: true,
+		})
+	}
+
+	return err
 }
 
 const badHabitEventFilterMessage = "Every `when:` entry should include an `event:` filter, either on the workflow or on each step. Entries are OR'ed, so one without `event:` matches every event."

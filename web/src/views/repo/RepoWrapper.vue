@@ -35,6 +35,12 @@
         icon="secret"
       />
       <IconButton
+        v-if="isAuthenticated && !repoPermissions.admin && repoPermissions.pull"
+        :to="{ name: 'repo-settings-notifications' }"
+        :title="$t('repo.watch.your_watches')"
+        icon="ph:eye"
+      />
+      <IconButton
         v-if="repoPermissions.admin"
         :to="{ name: 'repo-settings' }"
         :title="$t('settings')"

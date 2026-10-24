@@ -117,6 +117,7 @@ export type IconNames =
   | 'ph:x-circle'
   | 'ph:warning'
   | 'ph:info'
+  | 'ph:bell'
   | 'ph:eye'
   | 'ph:eye-slash'
   | 'ph:x'

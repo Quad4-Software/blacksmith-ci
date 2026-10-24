@@ -317,6 +317,8 @@ func refreshAndPublishPipeline(ctx context.Context, s store.Store, pipelineID in
 			log.Error().Err(err).Int64("pipeline_id", pipelineID).
 				Msg("refresh and publish: persist pipeline status failed")
 			// fall through — still publish what we have
+		} else {
+			notifyWatchersIfFinished(ctx, repo, pl)
 		}
 	}
 

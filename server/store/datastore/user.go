@@ -160,6 +160,19 @@ func (s storage) DeleteUser(user *model.User) error {
 			return fmt.Errorf("failed to delete user identities: %w", err)
 		}
 
+		var watches []*model.PipelineWatch
+		if err := tx.NewSelect().Model(&watches).Where("user_id = ?", user.ID).Scan(ctx); err != nil {
+			return fmt.Errorf("failed to list pipeline watches: %w", err)
+		}
+		if _, err := tx.NewDelete().Model((*model.PipelineWatch)(nil)).Where("user_id = ?", user.ID).Exec(ctx); err != nil {
+			return fmt.Errorf("failed to delete pipeline watches: %w", err)
+		}
+		for _, w := range watches {
+			if err := deleteUnwatchedState(ctx, tx, model.WatchKey{RepoID: w.RepoID, Event: w.Event, Target: w.Target}); err != nil {
+				return fmt.Errorf("failed to delete watch state: %w", err)
+			}
+		}
+
 		return nil
 	})
 }

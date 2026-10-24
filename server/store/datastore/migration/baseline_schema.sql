@@ -51,6 +51,35 @@ CREATE TABLE IF NOT EXISTS user_identities (
     UNIQUE(provider, issuer, subject)
 );
 
+CREATE TABLE IF NOT EXISTS pipeline_watches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    repo_id INTEGER NOT NULL,
+    watch_event VARCHAR(50) NOT NULL,
+    watch_target VARCHAR(255) NOT NULL,
+    in_app BOOLEAN NOT NULL,
+    email_enabled BOOLEAN NOT NULL,
+    email_events TEXT,
+    last_read_pipeline INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER,
+    updated_at INTEGER,
+    UNIQUE(user_id, repo_id, watch_event, watch_target)
+);
+
+CREATE TABLE IF NOT EXISTS watch_workflow_states (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id INTEGER NOT NULL,
+    watch_event VARCHAR(50) NOT NULL,
+    watch_target VARCHAR(255) NOT NULL,
+    workflow_name VARCHAR(255) NOT NULL,
+    failing BOOLEAN NOT NULL,
+    pipeline_id INTEGER NOT NULL,
+    pipeline_number INTEGER NOT NULL,
+    runs_since_seen INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER,
+    UNIQUE(repo_id, watch_event, watch_target, workflow_name)
+);
+
 CREATE TABLE IF NOT EXISTS build_caches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     repo_id INTEGER NOT NULL,
@@ -478,24 +507,6 @@ CREATE TABLE IF NOT EXISTS integrations (
     updated_at INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS notification_configs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    repo_id INTEGER NOT NULL UNIQUE,
-    is_enabled BOOLEAN DEFAULT true,
-    events TEXT,
-    created_at INTEGER,
-    updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS email_unsubscribes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    repo_id INTEGER NOT NULL,
-    email TEXT NOT NULL,
-    created_at INTEGER,
-    UNIQUE(user_id, repo_id)
-);
-
 CREATE TABLE IF NOT EXISTS approved_pull_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     repo_id INTEGER,
@@ -613,6 +624,7 @@ CREATE INDEX IF NOT EXISTS idx_user_forges_user_id ON user_forges (user_id);
 CREATE INDEX IF NOT EXISTS idx_user_forges_forge_id ON user_forges (forge_id);
 CREATE INDEX IF NOT EXISTS idx_user_identities_user_id ON user_identities (user_id);
 
+CREATE INDEX IF NOT EXISTS idx_pipeline_watches_key ON pipeline_watches (repo_id, watch_event, watch_target);
 CREATE INDEX IF NOT EXISTS idx_build_caches_last_used ON build_caches (last_used);
 CREATE INDEX IF NOT EXISTS idx_build_cache_usage_org_day ON build_cache_usage (org_id, day);
 

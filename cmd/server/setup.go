@@ -61,6 +61,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/services/maintenance"
 	"codefloe.com/crowci/crow/v6/server/services/notification"
 	"codefloe.com/crowci/crow/v6/server/services/permissions"
+	"codefloe.com/crowci/crow/v6/server/services/watch"
 	"codefloe.com/crowci/crow/v6/server/store"
 	"codefloe.com/crowci/crow/v6/server/store/datastore"
 	"codefloe.com/crowci/crow/v6/server/store/types"
@@ -709,25 +710,13 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		AuthType: c.String("smtp-auth-type"),
 	}
 	if smtpCfg.IsConfigured() {
-		server.Config.Services.NotificationService = notification.NewService(
-			s, s, smtpCfg, c.String("server-host"), server.Config.Server.JWTSecret,
-			func(login string) string {
-				user, err := s.GetUserLogin(login)
-				if err != nil || user == nil {
-					return ""
-				}
-				return user.Email
-			},
-			func(login string) int64 {
-				user, err := s.GetUserLogin(login)
-				if err != nil || user == nil {
-					return 0
-				}
-				return user.ID
-			},
-		)
+		server.Config.Services.NotificationService = notification.NewService(smtpCfg, c.String("server-host"))
 		log.Info().Str("host", smtpCfg.Host).Int("port", smtpCfg.Port).Msg("SMTP notification service configured")
 	}
+	// the watch service is always active; emails are only sent when SMTP is configured
+	server.Config.Services.WatchService = watch.NewService(
+		s, server.Config.Services.NotificationService, c.String("server-host"), server.Config.Server.JWTSecret,
+	)
 
 	ciQuotaCfg := ciquota.Config{
 		URL:   c.String("ci-quota-url"),

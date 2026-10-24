@@ -89,8 +89,7 @@ type Item struct {
 	DependsOn    []string
 	RunsOn       []string
 	Config       *backend_types.Config
-	OriginalName string                   // Store original filename for dependency resolution
-	Notify       *yaml_types.NotifyConfig // Per-workflow notification override from YAML
+	OriginalName string // Store original filename for dependency resolution
 }
 
 func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
@@ -399,7 +398,6 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 		DependsOn:    parsed.DependsOn,
 		RunsOn:       parsed.RunsOn,
 		OriginalName: SanitizePath(originalFileName), // Store original filename for dependency resolution
-		Notify:       parsed.Notify,
 	}
 	if len(item.Labels) == 0 {
 		item.Labels = make(map[string]string, len(b.DefaultLabels))

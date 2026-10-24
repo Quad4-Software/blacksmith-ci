@@ -57,7 +57,8 @@ type (
 	// encoding understood by the agent filter (see Flatten).
 	Labels map[string]base.StringOrSlice
 
-	// NotifyConfig allows per-pipeline notification overrides in .crow.yml.
+	// NotifyConfig is the deprecated `notify:` block. It is parsed so existing
+	// files stay valid, but it is ignored (the linter warns about it).
 	NotifyConfig struct {
 		Disabled bool     `yaml:"disabled,omitempty"`
 		Events   []string `yaml:"events,omitempty"`

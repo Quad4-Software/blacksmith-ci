@@ -279,6 +279,7 @@ func CancelWorkflow(ctx context.Context, _forge forge.Forge, store store.Store, 
 			return err
 		}
 		updatePipelineStatus(ctx, _forge, pipeline, repo, user)
+		notifyWatchersIfFinished(ctx, repo, pipeline)
 	}
 
 	publishToTopic(pipeline, repo)

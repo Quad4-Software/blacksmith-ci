@@ -65,6 +65,9 @@
                 <!-- Forge auth status warning -->
                 <ForgeAuthStatus v-if="user" />
 
+                <!-- Failing watched pipelines -->
+                <WatchBell v-if="user" />
+
                 <!-- User menu or login button -->
                 <DropdownMenu v-if="user">
                   <DropdownMenuTrigger as-child>
@@ -234,6 +237,7 @@ import KeyboardShortcutsDialog from '~/components/keyboard-shortcuts/KeyboardSho
 import AppSidebar from '~/components/layout/AppSidebar.vue';
 import ActivePipelines from '~/components/layout/header/ActivePipelines.vue';
 import ForgeAuthStatus from '~/components/layout/header/ForgeAuthStatus.vue';
+import WatchBell from '~/components/layout/header/WatchBell.vue';
 import LoadingOverlay from '~/components/layout/LoadingOverlay.vue';
 import PipelineFeedSidebar from '~/components/pipeline-feed/PipelineFeedSidebar.vue';
 import Avatar from '~/components/ui/avatar/Avatar.vue';

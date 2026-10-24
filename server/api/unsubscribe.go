@@ -16,17 +16,17 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v6/server"
-	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 	"codefloe.com/crowci/crow/v6/shared/token"
 )
 
@@ -47,34 +47,42 @@ func GetUnsubscribe(ctx context.Context, input *GetUnsubscribeInput) (*struct{},
 		return nil, nil
 	}
 
-	userIDStr := parsed.Get("user_id")
-	repoIDStr := parsed.Get("repo_id")
-	email := parsed.Get("email")
-	repoName := parsed.Get("repo")
-
-	userID, _ := strconv.ParseInt(userIDStr, 10, 64)
-	repoID, _ := strconv.ParseInt(repoIDStr, 10, 64)
-
-	if userID == 0 || repoID == 0 || email == "" {
+	watchID, _ := strconv.ParseInt(parsed.Get("watch_id"), 10, 64)
+	userID, _ := strconv.ParseInt(parsed.Get("user_id"), 10, 64)
+	if watchID == 0 || userID == 0 {
 		writeUnsubscribePage(c.Writer, "Invalid unsubscribe link.", false)
 		return nil, nil
 	}
 
-	unsub := &model.EmailUnsubscribe{
-		UserID:    userID,
-		RepoID:    repoID,
-		Email:     email,
-		CreatedAt: time.Now().Unix(),
+	w, err := _store.WatchFind(watchID)
+	if err != nil || w.UserID != userID {
+		if err != nil && !errors.Is(err, types.RecordNotExist) {
+			log.Error().Err(err).Int64("watch_id", watchID).Msg("failed to load watch for unsubscribe")
+			writeUnsubscribePage(c.Writer, "Something went wrong. Please try again.", false)
+			return nil, nil
+		}
+		writeUnsubscribePage(c.Writer, "This watch no longer exists, so there is nothing to unsubscribe from.", true)
+		return nil, nil
 	}
 
-	if err := _store.EmailUnsubscribeCreate(unsub); err != nil {
-		log.Error().Err(err).Int64("user_id", userID).Int64("repo_id", repoID).Msg("failed to create unsubscribe record")
+	// A watch without the in-app channel has nothing left once email is off.
+	if w.InApp {
+		w.Email = false
+		err = _store.WatchUpdate(w)
+	} else {
+		err = _store.WatchDelete(w.ID)
+	}
+	if err != nil {
+		log.Error().Err(err).Int64("watch_id", watchID).Msg("failed to unsubscribe watch")
 		writeUnsubscribePage(c.Writer, "Something went wrong. Please try again.", false)
 		return nil, nil
 	}
 
-	// repoName originates from a signed token claim (repo.FullName) that is
-	// ultimately user-controlled, so escape it before embedding in the HTML page.
+	repoName := ""
+	if repo, err := _store.GetRepo(w.RepoID); err == nil {
+		repoName = repo.FullName
+	}
+	// The repo name is user-controlled, so escape it before embedding in the HTML page.
 	msg := fmt.Sprintf("You have been unsubscribed from email notifications for <strong>%s</strong>.", html.EscapeString(repoName))
 	writeUnsubscribePage(c.Writer, msg, true)
 	return nil, nil

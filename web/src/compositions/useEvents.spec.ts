@@ -7,18 +7,35 @@ const mocks = vi.hoisted(() => ({
   load: vi.fn().mockResolvedValue(undefined),
   markSseReconnect: vi.fn(),
   auth: { isAuthenticated: true },
+  refreshWatches: Object.assign(vi.fn(), { cancel: vi.fn() }),
+  watchItems: { value: [] as { watch: { repo_id: number; event: string; target: string } }[] },
 }));
 vi.mock('./useApiClient', () => ({ default: () => ({ on: mocks.on }) }));
 vi.mock('~/store/auth', () => ({ useAuthStore: () => mocks.auth }));
-vi.mock('~/store/repos', () => ({ useRepoStore: () => ({}) }));
+vi.mock('~/store/repos', () => ({ useRepoStore: () => ({ setRepo: vi.fn() }) }));
 vi.mock('~/store/pipelines', () => ({
-  usePipelineStore: () => ({ markSseReconnect: mocks.markSseReconnect }),
+  usePipelineStore: () => ({
+    markSseReconnect: mocks.markSseReconnect,
+    setPipeline: vi.fn(),
+    markAsSSEDelivered: vi.fn(),
+  }),
 }));
-vi.mock('~/compositions/usePipelineFeed', () => ({ default: () => ({ load: mocks.load }) }));
+vi.mock('~/compositions/usePipelineFeed', () => ({
+  default: () => ({ load: mocks.load, loadWorkflowApprovals: vi.fn() }),
+}));
+vi.mock('~/compositions/useWatches', () => ({
+  refreshWatchesDebounced: mocks.refreshWatches,
+  useWatches: () => ({ items: mocks.watchItems }),
+}));
 
 describe('event stream recovery', () => {
   let cleanup: (() => void) | undefined;
   let streams: (EventTarget & { close: ReturnType<typeof vi.fn> })[];
+  let handlers: ((data: unknown) => void)[];
+
+  function finish(repoId: number, pipeline: Record<string, unknown>) {
+    handlers[0]({ repo: { id: repoId }, pipeline: { number: 1, status: 'failure', ...pipeline } });
+  }
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -26,9 +43,12 @@ describe('event stream recovery', () => {
     mocks.auth.isAuthenticated = true;
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     streams = [];
-    mocks.on.mockImplementation(() => {
+    handlers = [];
+    mocks.watchItems.value = [];
+    mocks.on.mockImplementation((handler: (data: unknown) => void) => {
       const stream = Object.assign(new EventTarget(), { close: vi.fn() });
       streams.push(stream);
+      handlers.push(handler);
       return stream;
     });
     cleanup = useEvents();
@@ -90,5 +110,27 @@ describe('event stream recovery', () => {
     expect(mocks.on).toHaveBeenCalledOnce();
     expect(mocks.load).not.toHaveBeenCalled();
     expect(streams[0].close).toHaveBeenCalledOnce();
+  });
+
+  it('refreshes watches on reconnect', async () => {
+    streams[0].dispatchEvent(new Event('open'));
+    await vi.advanceTimersByTimeAsync(250);
+    expect(mocks.refreshWatches).toHaveBeenCalledOnce();
+  });
+
+  it('refreshes watches only for finished pipelines of a watched key', () => {
+    // no watches loaded: no refetch for any pipeline in the fleet
+    finish(1, { event: 'push', branch: 'main' });
+    expect(mocks.refreshWatches).not.toHaveBeenCalled();
+
+    mocks.watchItems.value = [{ watch: { repo_id: 1, event: 'push', target: 'main' } }];
+    finish(1, { event: 'push', branch: 'dev' });
+    finish(2, { event: 'push', branch: 'main' });
+    finish(1, { event: 'pull_request', branch: 'main' });
+    finish(1, { event: 'push', branch: 'main', status: 'running' });
+    expect(mocks.refreshWatches).not.toHaveBeenCalled();
+
+    finish(1, { event: 'push', branch: 'main' });
+    expect(mocks.refreshWatches).toHaveBeenCalledOnce();
   });
 });

@@ -87,11 +87,12 @@ func freshDatabaseTables() []string {
 		"users", "repos", "pipelines", "workflows", "steps", "tasks",
 		"log_entries", "configs", "pipeline_configs", "secrets", "secret_targets",
 		"registries", "perms", "agents", "autoscalers", "crons", "orgs", "forges",
-		"server_configs", "access_tokens", "integrations", "notification_configs",
+		"server_configs", "access_tokens", "integrations",
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
 		"cache_entries", "maintenance_config", "user_forges", "user_identities", "redirections", "build_caches",
+		"pipeline_watches", "watch_workflow_states",
 		"build_cache_settings", "build_cache_buckets", "build_cache_usage",
-		"email_unsubscribes", "maintenance_operation_config",
+		"maintenance_operation_config",
 		"maintenance_stats", "maintenance_logs",
 	}
 }
@@ -291,8 +292,10 @@ func TestMigrate_NewMigrations_PortableSQL(t *testing.T) {
 
 	// Verify new migration tables/columns were created
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM email_unsubscribes").Scan(&count)
-	assert.NoError(t, err, "email_unsubscribes table should exist")
+	for _, table := range []string{"notification_configs", "email_unsubscribes"} {
+		_, err = db.Exec("SELECT COUNT(*) FROM " + table)
+		assert.Error(t, err, "%s table should have been dropped", table)
+	}
 
 	// Verify secret_targets was created with proper FK
 	err = db.QueryRow("SELECT COUNT(*) FROM secret_targets").Scan(&count)
@@ -336,7 +339,7 @@ func assertIdentitySubjectsByteExact(t *testing.T, db *sql.DB) {
 
 // TestMigrate_RepairsBrokenMySQLAutoIncrement simulates the MySQL analog of
 // the bug in TestMigrate_RepairsBrokenPostgresIDSequence: the buggy migration
-// window left email_unsubscribes as `id INT PRIMARY KEY` (no AUTO_INCREMENT).
+// window left user_identities as `id INT PRIMARY KEY` (no AUTO_INCREMENT).
 // The new `crow-repair-mysql-id-auto-increment` migration must restore the
 // AUTO_INCREMENT attribute so inserts without an explicit id succeed and the
 // counter advances past the existing row.
@@ -352,7 +355,7 @@ func TestMigrate_RepairsBrokenMySQLAutoIncrement(t *testing.T) {
 		_, err = db.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id))
 		require.NoError(t, err)
 	}
-	_, err = db.Exec("INSERT INTO migrations (id) VALUES ('crow-add-email-unsubscribes')")
+	_, err = db.Exec("INSERT INTO migrations (id) VALUES ('crow-add-user-identities')")
 	require.NoError(t, err)
 
 	// Fixtures other new migrations expect.
@@ -361,29 +364,28 @@ func TestMigrate_RepairsBrokenMySQLAutoIncrement(t *testing.T) {
 
 	// Recreate the broken historical schema on MySQL: id is INT PRIMARY KEY
 	// with no AUTO_INCREMENT, no default, NOT NULL by virtue of PRIMARY KEY.
-	_, err = db.Exec(`CREATE TABLE email_unsubscribes (
+	_, err = db.Exec(`CREATE TABLE user_identities (
 		id INT PRIMARY KEY,
 		user_id INTEGER NOT NULL,
-		repo_id INTEGER NOT NULL,
-		email TEXT NOT NULL,
-		created_at INTEGER,
-		UNIQUE(user_id, repo_id)
+		provider VARCHAR(50) NOT NULL,
+		subject VARCHAR(255) NOT NULL,
+		linked_at INTEGER NOT NULL
 	)`)
 	require.NoError(t, err)
 
-	_, err = db.Exec(`INSERT INTO email_unsubscribes (id, user_id, repo_id, email) VALUES (42, 1, 1, 'seed@example.com')`)
+	_, err = db.Exec(`INSERT INTO user_identities (id, user_id, provider, subject, linked_at) VALUES (42, 1, 'p', 'seed', 0)`)
 	require.NoError(t, err)
 
 	// Sanity check: in the broken state, INSERT without an id fails because
 	// the column has no AUTO_INCREMENT and no default.
-	_, err = db.Exec(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (2, 2, 'pre@example.com')`)
+	_, err = db.Exec(`INSERT INTO user_identities (user_id, provider, subject, linked_at) VALUES (2, 'p', 'pre', 0)`)
 	require.Error(t, err, "broken table must reject inserts without an explicit id")
 
 	err = Migrate(t.Context(), db, driver, true)
 	require.NoError(t, err)
 
 	// Post-repair: INSERT without id works and the counter advances past 42.
-	res, err := db.Exec(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (3, 3, 'post@example.com')`)
+	res, err := db.Exec(`INSERT INTO user_identities (user_id, provider, subject, linked_at) VALUES (3, 'p', 'post', 0)`)
 	require.NoError(t, err)
 	newID, err := res.LastInsertId()
 	require.NoError(t, err)
@@ -392,7 +394,7 @@ func TestMigrate_RepairsBrokenMySQLAutoIncrement(t *testing.T) {
 
 // TestMigrate_RepairsBrokenPostgresIDSequence simulates the production failure
 // mode from May 2026: an existing PostgreSQL database where
-// `crow-add-email-unsubscribes` was applied during the window when it created
+// `crow-add-user-identities` was applied during the window when it created
 // the table with `id INTEGER PRIMARY KEY` (no sequence). The new
 // `crow-repair-postgres-id-sequences` migration must restore the sequence so
 // inserts without an explicit id succeed and the post-migration sequence
@@ -409,8 +411,8 @@ func TestMigrate_RepairsBrokenPostgresIDSequence(t *testing.T) {
 		_, err = db.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id))
 		require.NoError(t, err)
 	}
-	// Pretend the buggy email_unsubscribes migration already ran.
-	_, err = db.Exec("INSERT INTO migrations (id) VALUES ('crow-add-email-unsubscribes')")
+	// Pretend the buggy user-identities migration already ran.
+	_, err = db.Exec("INSERT INTO migrations (id) VALUES ('crow-add-user-identities')")
 	require.NoError(t, err)
 
 	// Fixtures other new migrations need.
@@ -419,22 +421,21 @@ func TestMigrate_RepairsBrokenPostgresIDSequence(t *testing.T) {
 
 	// Recreate the broken historical schema: id is a plain INTEGER PRIMARY KEY
 	// with no DEFAULT and no backing sequence.
-	_, err = db.Exec(`CREATE TABLE email_unsubscribes (
+	_, err = db.Exec(`CREATE TABLE user_identities (
 		id INTEGER PRIMARY KEY,
 		user_id INTEGER NOT NULL,
-		repo_id INTEGER NOT NULL,
-		email TEXT NOT NULL,
-		created_at INTEGER,
-		UNIQUE(user_id, repo_id)
+		provider VARCHAR(50) NOT NULL,
+		subject VARCHAR(255) NOT NULL,
+		linked_at INTEGER NOT NULL
 	)`)
 	require.NoError(t, err)
 
 	// Seed with an explicit id so the repair has a row to skip past.
-	_, err = db.Exec(`INSERT INTO email_unsubscribes (id, user_id, repo_id, email) VALUES (42, 1, 1, 'seed@example.com')`)
+	_, err = db.Exec(`INSERT INTO user_identities (id, user_id, provider, subject, linked_at) VALUES (42, 1, 'p', 'seed', 0)`)
 	require.NoError(t, err)
 
 	// Sanity check: in the broken state, INSERT without an id violates NOT NULL.
-	_, err = db.Exec(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (2, 2, 'pre@example.com')`)
+	_, err = db.Exec(`INSERT INTO user_identities (user_id, provider, subject, linked_at) VALUES (2, 'p', 'pre', 0)`)
 	require.Error(t, err, "broken table must reject inserts without an explicit id")
 
 	err = Migrate(t.Context(), db, driver, true)
@@ -442,7 +443,7 @@ func TestMigrate_RepairsBrokenPostgresIDSequence(t *testing.T) {
 
 	// Post-repair: INSERT without id works and the sequence advances past the seeded row.
 	var newID int
-	err = db.QueryRow(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (3, 3, 'post@example.com') RETURNING id`).Scan(&newID)
+	err = db.QueryRow(`INSERT INTO user_identities (user_id, provider, subject, linked_at) VALUES (3, 'p', 'post', 0) RETURNING id`).Scan(&newID)
 	require.NoError(t, err)
 	assert.Greater(t, newID, 42, "repaired sequence must skip past existing max id")
 }

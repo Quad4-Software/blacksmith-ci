@@ -830,3 +830,33 @@ func TestBadHabits(t *testing.T) {
 		})
 	}
 }
+
+func TestLintNotifyDeprecated(t *testing.T) {
+	yamlData := `
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+notify:
+  disabled: true
+`
+	conf, err := yaml.ParseString(yamlData)
+	require.NoError(t, err)
+
+	err = linter.New().Lint([]*linter.WorkflowConfig{{
+		File:      "notify-test",
+		RawConfig: yamlData,
+		Workflow:  conf,
+	}})
+	require.Error(t, err)
+
+	perrs := errors.GetPipelineErrors(err)
+	require.Len(t, perrs, 1)
+	assert.Equal(t, errorTypes.PipelineErrorTypeDeprecation, perrs[0].Type)
+	assert.True(t, perrs[0].IsWarning)
+	data, ok := perrs[0].Data.(errors.DeprecationErrorData)
+	require.True(t, ok)
+	assert.Equal(t, "notify", data.Field)
+	assert.False(t, errors.HasBlockingErrors(err))
+}

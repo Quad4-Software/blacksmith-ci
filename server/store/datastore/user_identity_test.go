@@ -28,7 +28,7 @@ import (
 )
 
 func TestUserIdentities(t *testing.T) {
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Perm), new(model.UserForge), new(model.UserIdentity))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Perm), new(model.UserForge), new(model.UserIdentity), new(model.PipelineWatch))
 	defer closer()
 
 	_, err := store.UserIdentityGetByProviderSubject("oidc", "https://idp.example", "sub-1")
@@ -78,7 +78,7 @@ func TestUserIdentities(t *testing.T) {
 
 func TestDeleteUserRemovesIdentities(t *testing.T) {
 	// Same tables as TestUsers, because DeleteUser also deletes the personal org with its repos and secrets.
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity), new(model.PipelineWatch))
 	defer closer()
 
 	user := &model.User{Login: "jane", Hash: "hash-jane"}
@@ -93,7 +93,7 @@ func TestDeleteUserRemovesIdentities(t *testing.T) {
 }
 
 func TestUserCreateWithIdentity(t *testing.T) {
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Perm), new(model.UserForge), new(model.UserIdentity))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Perm), new(model.UserForge), new(model.UserIdentity), new(model.PipelineWatch))
 	defer closer()
 
 	newIdentity := func(subject string) *model.UserIdentity {

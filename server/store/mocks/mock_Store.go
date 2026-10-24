@@ -5249,182 +5249,6 @@ func (_c *MockStore_DistributedLockRelease_Call) RunAndReturn(run func(lockName 
 	return _c
 }
 
-// EmailUnsubscribeCreate provides a mock function for the type MockStore
-func (_mock *MockStore) EmailUnsubscribeCreate(emailUnsubscribe *model.EmailUnsubscribe) error {
-	ret := _mock.Called(emailUnsubscribe)
-
-	if len(ret) == 0 {
-		panic("no return value specified for EmailUnsubscribeCreate")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(*model.EmailUnsubscribe) error); ok {
-		r0 = returnFunc(emailUnsubscribe)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockStore_EmailUnsubscribeCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EmailUnsubscribeCreate'
-type MockStore_EmailUnsubscribeCreate_Call struct {
-	*mock.Call
-}
-
-// EmailUnsubscribeCreate is a helper method to define mock.On call
-//   - emailUnsubscribe *model.EmailUnsubscribe
-func (_e *MockStore_Expecter) EmailUnsubscribeCreate(emailUnsubscribe any) *MockStore_EmailUnsubscribeCreate_Call {
-	return &MockStore_EmailUnsubscribeCreate_Call{Call: _e.mock.On("EmailUnsubscribeCreate", emailUnsubscribe)}
-}
-
-func (_c *MockStore_EmailUnsubscribeCreate_Call) Run(run func(emailUnsubscribe *model.EmailUnsubscribe)) *MockStore_EmailUnsubscribeCreate_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 *model.EmailUnsubscribe
-		if args[0] != nil {
-			arg0 = args[0].(*model.EmailUnsubscribe)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_EmailUnsubscribeCreate_Call) Return(err error) *MockStore_EmailUnsubscribeCreate_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockStore_EmailUnsubscribeCreate_Call) RunAndReturn(run func(emailUnsubscribe *model.EmailUnsubscribe) error) *MockStore_EmailUnsubscribeCreate_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// EmailUnsubscribeDelete provides a mock function for the type MockStore
-func (_mock *MockStore) EmailUnsubscribeDelete(userID int64, repoID int64) error {
-	ret := _mock.Called(userID, repoID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for EmailUnsubscribeDelete")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(int64, int64) error); ok {
-		r0 = returnFunc(userID, repoID)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockStore_EmailUnsubscribeDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EmailUnsubscribeDelete'
-type MockStore_EmailUnsubscribeDelete_Call struct {
-	*mock.Call
-}
-
-// EmailUnsubscribeDelete is a helper method to define mock.On call
-//   - userID int64
-//   - repoID int64
-func (_e *MockStore_Expecter) EmailUnsubscribeDelete(userID any, repoID any) *MockStore_EmailUnsubscribeDelete_Call {
-	return &MockStore_EmailUnsubscribeDelete_Call{Call: _e.mock.On("EmailUnsubscribeDelete", userID, repoID)}
-}
-
-func (_c *MockStore_EmailUnsubscribeDelete_Call) Run(run func(userID int64, repoID int64)) *MockStore_EmailUnsubscribeDelete_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 int64
-		if args[0] != nil {
-			arg0 = args[0].(int64)
-		}
-		var arg1 int64
-		if args[1] != nil {
-			arg1 = args[1].(int64)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_EmailUnsubscribeDelete_Call) Return(err error) *MockStore_EmailUnsubscribeDelete_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockStore_EmailUnsubscribeDelete_Call) RunAndReturn(run func(userID int64, repoID int64) error) *MockStore_EmailUnsubscribeDelete_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// EmailUnsubscribeFind provides a mock function for the type MockStore
-func (_mock *MockStore) EmailUnsubscribeFind(userID int64, repoID int64) (*model.EmailUnsubscribe, error) {
-	ret := _mock.Called(userID, repoID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for EmailUnsubscribeFind")
-	}
-
-	var r0 *model.EmailUnsubscribe
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(int64, int64) (*model.EmailUnsubscribe, error)); ok {
-		return returnFunc(userID, repoID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(int64, int64) *model.EmailUnsubscribe); ok {
-		r0 = returnFunc(userID, repoID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.EmailUnsubscribe)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(int64, int64) error); ok {
-		r1 = returnFunc(userID, repoID)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockStore_EmailUnsubscribeFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EmailUnsubscribeFind'
-type MockStore_EmailUnsubscribeFind_Call struct {
-	*mock.Call
-}
-
-// EmailUnsubscribeFind is a helper method to define mock.On call
-//   - userID int64
-//   - repoID int64
-func (_e *MockStore_Expecter) EmailUnsubscribeFind(userID any, repoID any) *MockStore_EmailUnsubscribeFind_Call {
-	return &MockStore_EmailUnsubscribeFind_Call{Call: _e.mock.On("EmailUnsubscribeFind", userID, repoID)}
-}
-
-func (_c *MockStore_EmailUnsubscribeFind_Call) Run(run func(userID int64, repoID int64)) *MockStore_EmailUnsubscribeFind_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 int64
-		if args[0] != nil {
-			arg0 = args[0].(int64)
-		}
-		var arg1 int64
-		if args[1] != nil {
-			arg1 = args[1].(int64)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_EmailUnsubscribeFind_Call) Return(emailUnsubscribe *model.EmailUnsubscribe, err error) *MockStore_EmailUnsubscribeFind_Call {
-	_c.Call.Return(emailUnsubscribe, err)
-	return _c
-}
-
-func (_c *MockStore_EmailUnsubscribeFind_Call) RunAndReturn(run func(userID int64, repoID int64) (*model.EmailUnsubscribe, error)) *MockStore_EmailUnsubscribeFind_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // ForgeCreate provides a mock function for the type MockStore
 func (_mock *MockStore) ForgeCreate(forge *model.Forge) error {
 	ret := _mock.Called(forge)
@@ -9811,170 +9635,6 @@ func (_c *MockStore_Migrate_Call) Return(err error) *MockStore_Migrate_Call {
 }
 
 func (_c *MockStore_Migrate_Call) RunAndReturn(run func(context1 context.Context, b bool) error) *MockStore_Migrate_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// NotificationConfigDelete provides a mock function for the type MockStore
-func (_mock *MockStore) NotificationConfigDelete(repoID int64) error {
-	ret := _mock.Called(repoID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for NotificationConfigDelete")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
-		r0 = returnFunc(repoID)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockStore_NotificationConfigDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NotificationConfigDelete'
-type MockStore_NotificationConfigDelete_Call struct {
-	*mock.Call
-}
-
-// NotificationConfigDelete is a helper method to define mock.On call
-//   - repoID int64
-func (_e *MockStore_Expecter) NotificationConfigDelete(repoID any) *MockStore_NotificationConfigDelete_Call {
-	return &MockStore_NotificationConfigDelete_Call{Call: _e.mock.On("NotificationConfigDelete", repoID)}
-}
-
-func (_c *MockStore_NotificationConfigDelete_Call) Run(run func(repoID int64)) *MockStore_NotificationConfigDelete_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 int64
-		if args[0] != nil {
-			arg0 = args[0].(int64)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_NotificationConfigDelete_Call) Return(err error) *MockStore_NotificationConfigDelete_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockStore_NotificationConfigDelete_Call) RunAndReturn(run func(repoID int64) error) *MockStore_NotificationConfigDelete_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// NotificationConfigFind provides a mock function for the type MockStore
-func (_mock *MockStore) NotificationConfigFind(repoID int64) (*model.NotificationConfig, error) {
-	ret := _mock.Called(repoID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for NotificationConfigFind")
-	}
-
-	var r0 *model.NotificationConfig
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(int64) (*model.NotificationConfig, error)); ok {
-		return returnFunc(repoID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(int64) *model.NotificationConfig); ok {
-		r0 = returnFunc(repoID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.NotificationConfig)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
-		r1 = returnFunc(repoID)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockStore_NotificationConfigFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NotificationConfigFind'
-type MockStore_NotificationConfigFind_Call struct {
-	*mock.Call
-}
-
-// NotificationConfigFind is a helper method to define mock.On call
-//   - repoID int64
-func (_e *MockStore_Expecter) NotificationConfigFind(repoID any) *MockStore_NotificationConfigFind_Call {
-	return &MockStore_NotificationConfigFind_Call{Call: _e.mock.On("NotificationConfigFind", repoID)}
-}
-
-func (_c *MockStore_NotificationConfigFind_Call) Run(run func(repoID int64)) *MockStore_NotificationConfigFind_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 int64
-		if args[0] != nil {
-			arg0 = args[0].(int64)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_NotificationConfigFind_Call) Return(notificationConfig *model.NotificationConfig, err error) *MockStore_NotificationConfigFind_Call {
-	_c.Call.Return(notificationConfig, err)
-	return _c
-}
-
-func (_c *MockStore_NotificationConfigFind_Call) RunAndReturn(run func(repoID int64) (*model.NotificationConfig, error)) *MockStore_NotificationConfigFind_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// NotificationConfigUpsert provides a mock function for the type MockStore
-func (_mock *MockStore) NotificationConfigUpsert(notificationConfig *model.NotificationConfig) error {
-	ret := _mock.Called(notificationConfig)
-
-	if len(ret) == 0 {
-		panic("no return value specified for NotificationConfigUpsert")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(*model.NotificationConfig) error); ok {
-		r0 = returnFunc(notificationConfig)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockStore_NotificationConfigUpsert_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NotificationConfigUpsert'
-type MockStore_NotificationConfigUpsert_Call struct {
-	*mock.Call
-}
-
-// NotificationConfigUpsert is a helper method to define mock.On call
-//   - notificationConfig *model.NotificationConfig
-func (_e *MockStore_Expecter) NotificationConfigUpsert(notificationConfig any) *MockStore_NotificationConfigUpsert_Call {
-	return &MockStore_NotificationConfigUpsert_Call{Call: _e.mock.On("NotificationConfigUpsert", notificationConfig)}
-}
-
-func (_c *MockStore_NotificationConfigUpsert_Call) Run(run func(notificationConfig *model.NotificationConfig)) *MockStore_NotificationConfigUpsert_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 *model.NotificationConfig
-		if args[0] != nil {
-			arg0 = args[0].(*model.NotificationConfig)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_NotificationConfigUpsert_Call) Return(err error) *MockStore_NotificationConfigUpsert_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockStore_NotificationConfigUpsert_Call) RunAndReturn(run func(notificationConfig *model.NotificationConfig) error) *MockStore_NotificationConfigUpsert_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -15759,6 +15419,710 @@ func (_c *MockStore_UserSecretList_Call) Return(secrets []*model.Secret, err err
 }
 
 func (_c *MockStore_UserSecretList_Call) RunAndReturn(run func(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Secret, error)) *MockStore_UserSecretList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchCreate provides a mock function for the type MockStore
+func (_mock *MockStore) WatchCreate(w *model.PipelineWatch) error {
+	ret := _mock.Called(w)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.PipelineWatch) error); ok {
+		r0 = returnFunc(w)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_WatchCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchCreate'
+type MockStore_WatchCreate_Call struct {
+	*mock.Call
+}
+
+// WatchCreate is a helper method to define mock.On call
+//   - w *model.PipelineWatch
+func (_e *MockStore_Expecter) WatchCreate(w any) *MockStore_WatchCreate_Call {
+	return &MockStore_WatchCreate_Call{Call: _e.mock.On("WatchCreate", w)}
+}
+
+func (_c *MockStore_WatchCreate_Call) Run(run func(w *model.PipelineWatch)) *MockStore_WatchCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.PipelineWatch
+		if args[0] != nil {
+			arg0 = args[0].(*model.PipelineWatch)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchCreate_Call) Return(err error) *MockStore_WatchCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_WatchCreate_Call) RunAndReturn(run func(w *model.PipelineWatch) error) *MockStore_WatchCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchDelete provides a mock function for the type MockStore
+func (_mock *MockStore) WatchDelete(id int64) error {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_WatchDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchDelete'
+type MockStore_WatchDelete_Call struct {
+	*mock.Call
+}
+
+// WatchDelete is a helper method to define mock.On call
+//   - id int64
+func (_e *MockStore_Expecter) WatchDelete(id any) *MockStore_WatchDelete_Call {
+	return &MockStore_WatchDelete_Call{Call: _e.mock.On("WatchDelete", id)}
+}
+
+func (_c *MockStore_WatchDelete_Call) Run(run func(id int64)) *MockStore_WatchDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchDelete_Call) Return(err error) *MockStore_WatchDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_WatchDelete_Call) RunAndReturn(run func(id int64) error) *MockStore_WatchDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchFind provides a mock function for the type MockStore
+func (_mock *MockStore) WatchFind(id int64) (*model.PipelineWatch, error) {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchFind")
+	}
+
+	var r0 *model.PipelineWatch
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.PipelineWatch, error)); ok {
+		return returnFunc(id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.PipelineWatch); ok {
+		r0 = returnFunc(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.PipelineWatch)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WatchFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchFind'
+type MockStore_WatchFind_Call struct {
+	*mock.Call
+}
+
+// WatchFind is a helper method to define mock.On call
+//   - id int64
+func (_e *MockStore_Expecter) WatchFind(id any) *MockStore_WatchFind_Call {
+	return &MockStore_WatchFind_Call{Call: _e.mock.On("WatchFind", id)}
+}
+
+func (_c *MockStore_WatchFind_Call) Run(run func(id int64)) *MockStore_WatchFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchFind_Call) Return(pipelineWatch *model.PipelineWatch, err error) *MockStore_WatchFind_Call {
+	_c.Call.Return(pipelineWatch, err)
+	return _c
+}
+
+func (_c *MockStore_WatchFind_Call) RunAndReturn(run func(id int64) (*model.PipelineWatch, error)) *MockStore_WatchFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchFindByKey provides a mock function for the type MockStore
+func (_mock *MockStore) WatchFindByKey(userID int64, repoID int64, event model.WebhookEvent, target string) (*model.PipelineWatch, error) {
+	ret := _mock.Called(userID, repoID, event, target)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchFindByKey")
+	}
+
+	var r0 *model.PipelineWatch
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, model.WebhookEvent, string) (*model.PipelineWatch, error)); ok {
+		return returnFunc(userID, repoID, event, target)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, model.WebhookEvent, string) *model.PipelineWatch); ok {
+		r0 = returnFunc(userID, repoID, event, target)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.PipelineWatch)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, model.WebhookEvent, string) error); ok {
+		r1 = returnFunc(userID, repoID, event, target)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WatchFindByKey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchFindByKey'
+type MockStore_WatchFindByKey_Call struct {
+	*mock.Call
+}
+
+// WatchFindByKey is a helper method to define mock.On call
+//   - userID int64
+//   - repoID int64
+//   - event model.WebhookEvent
+//   - target string
+func (_e *MockStore_Expecter) WatchFindByKey(userID any, repoID any, event any, target any) *MockStore_WatchFindByKey_Call {
+	return &MockStore_WatchFindByKey_Call{Call: _e.mock.On("WatchFindByKey", userID, repoID, event, target)}
+}
+
+func (_c *MockStore_WatchFindByKey_Call) Run(run func(userID int64, repoID int64, event model.WebhookEvent, target string)) *MockStore_WatchFindByKey_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 model.WebhookEvent
+		if args[2] != nil {
+			arg2 = args[2].(model.WebhookEvent)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchFindByKey_Call) Return(pipelineWatch *model.PipelineWatch, err error) *MockStore_WatchFindByKey_Call {
+	_c.Call.Return(pipelineWatch, err)
+	return _c
+}
+
+func (_c *MockStore_WatchFindByKey_Call) RunAndReturn(run func(userID int64, repoID int64, event model.WebhookEvent, target string) (*model.PipelineWatch, error)) *MockStore_WatchFindByKey_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchListByKey provides a mock function for the type MockStore
+func (_mock *MockStore) WatchListByKey(repoID int64, event model.WebhookEvent, target string) ([]*model.PipelineWatch, error) {
+	ret := _mock.Called(repoID, event, target)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchListByKey")
+	}
+
+	var r0 []*model.PipelineWatch
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, model.WebhookEvent, string) ([]*model.PipelineWatch, error)); ok {
+		return returnFunc(repoID, event, target)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, model.WebhookEvent, string) []*model.PipelineWatch); ok {
+		r0 = returnFunc(repoID, event, target)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.PipelineWatch)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, model.WebhookEvent, string) error); ok {
+		r1 = returnFunc(repoID, event, target)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WatchListByKey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchListByKey'
+type MockStore_WatchListByKey_Call struct {
+	*mock.Call
+}
+
+// WatchListByKey is a helper method to define mock.On call
+//   - repoID int64
+//   - event model.WebhookEvent
+//   - target string
+func (_e *MockStore_Expecter) WatchListByKey(repoID any, event any, target any) *MockStore_WatchListByKey_Call {
+	return &MockStore_WatchListByKey_Call{Call: _e.mock.On("WatchListByKey", repoID, event, target)}
+}
+
+func (_c *MockStore_WatchListByKey_Call) Run(run func(repoID int64, event model.WebhookEvent, target string)) *MockStore_WatchListByKey_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 model.WebhookEvent
+		if args[1] != nil {
+			arg1 = args[1].(model.WebhookEvent)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchListByKey_Call) Return(pipelineWatchs []*model.PipelineWatch, err error) *MockStore_WatchListByKey_Call {
+	_c.Call.Return(pipelineWatchs, err)
+	return _c
+}
+
+func (_c *MockStore_WatchListByKey_Call) RunAndReturn(run func(repoID int64, event model.WebhookEvent, target string) ([]*model.PipelineWatch, error)) *MockStore_WatchListByKey_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchListByUser provides a mock function for the type MockStore
+func (_mock *MockStore) WatchListByUser(userID int64) ([]*model.PipelineWatch, error) {
+	ret := _mock.Called(userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchListByUser")
+	}
+
+	var r0 []*model.PipelineWatch
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.PipelineWatch, error)); ok {
+		return returnFunc(userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.PipelineWatch); ok {
+		r0 = returnFunc(userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.PipelineWatch)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WatchListByUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchListByUser'
+type MockStore_WatchListByUser_Call struct {
+	*mock.Call
+}
+
+// WatchListByUser is a helper method to define mock.On call
+//   - userID int64
+func (_e *MockStore_Expecter) WatchListByUser(userID any) *MockStore_WatchListByUser_Call {
+	return &MockStore_WatchListByUser_Call{Call: _e.mock.On("WatchListByUser", userID)}
+}
+
+func (_c *MockStore_WatchListByUser_Call) Run(run func(userID int64)) *MockStore_WatchListByUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchListByUser_Call) Return(pipelineWatchs []*model.PipelineWatch, err error) *MockStore_WatchListByUser_Call {
+	_c.Call.Return(pipelineWatchs, err)
+	return _c
+}
+
+func (_c *MockStore_WatchListByUser_Call) RunAndReturn(run func(userID int64) ([]*model.PipelineWatch, error)) *MockStore_WatchListByUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchListByUserRepo provides a mock function for the type MockStore
+func (_mock *MockStore) WatchListByUserRepo(userID int64, repoID int64) ([]*model.PipelineWatch, error) {
+	ret := _mock.Called(userID, repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchListByUserRepo")
+	}
+
+	var r0 []*model.PipelineWatch
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) ([]*model.PipelineWatch, error)); ok {
+		return returnFunc(userID, repoID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) []*model.PipelineWatch); ok {
+		r0 = returnFunc(userID, repoID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.PipelineWatch)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = returnFunc(userID, repoID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WatchListByUserRepo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchListByUserRepo'
+type MockStore_WatchListByUserRepo_Call struct {
+	*mock.Call
+}
+
+// WatchListByUserRepo is a helper method to define mock.On call
+//   - userID int64
+//   - repoID int64
+func (_e *MockStore_Expecter) WatchListByUserRepo(userID any, repoID any) *MockStore_WatchListByUserRepo_Call {
+	return &MockStore_WatchListByUserRepo_Call{Call: _e.mock.On("WatchListByUserRepo", userID, repoID)}
+}
+
+func (_c *MockStore_WatchListByUserRepo_Call) Run(run func(userID int64, repoID int64)) *MockStore_WatchListByUserRepo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchListByUserRepo_Call) Return(pipelineWatchs []*model.PipelineWatch, err error) *MockStore_WatchListByUserRepo_Call {
+	_c.Call.Return(pipelineWatchs, err)
+	return _c
+}
+
+func (_c *MockStore_WatchListByUserRepo_Call) RunAndReturn(run func(userID int64, repoID int64) ([]*model.PipelineWatch, error)) *MockStore_WatchListByUserRepo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchStateList provides a mock function for the type MockStore
+func (_mock *MockStore) WatchStateList(repoID int64, event model.WebhookEvent, target string) ([]*model.WatchWorkflowState, error) {
+	ret := _mock.Called(repoID, event, target)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchStateList")
+	}
+
+	var r0 []*model.WatchWorkflowState
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, model.WebhookEvent, string) ([]*model.WatchWorkflowState, error)); ok {
+		return returnFunc(repoID, event, target)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, model.WebhookEvent, string) []*model.WatchWorkflowState); ok {
+		r0 = returnFunc(repoID, event, target)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.WatchWorkflowState)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, model.WebhookEvent, string) error); ok {
+		r1 = returnFunc(repoID, event, target)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WatchStateList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchStateList'
+type MockStore_WatchStateList_Call struct {
+	*mock.Call
+}
+
+// WatchStateList is a helper method to define mock.On call
+//   - repoID int64
+//   - event model.WebhookEvent
+//   - target string
+func (_e *MockStore_Expecter) WatchStateList(repoID any, event any, target any) *MockStore_WatchStateList_Call {
+	return &MockStore_WatchStateList_Call{Call: _e.mock.On("WatchStateList", repoID, event, target)}
+}
+
+func (_c *MockStore_WatchStateList_Call) Run(run func(repoID int64, event model.WebhookEvent, target string)) *MockStore_WatchStateList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 model.WebhookEvent
+		if args[1] != nil {
+			arg1 = args[1].(model.WebhookEvent)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchStateList_Call) Return(watchWorkflowStates []*model.WatchWorkflowState, err error) *MockStore_WatchStateList_Call {
+	_c.Call.Return(watchWorkflowStates, err)
+	return _c
+}
+
+func (_c *MockStore_WatchStateList_Call) RunAndReturn(run func(repoID int64, event model.WebhookEvent, target string) ([]*model.WatchWorkflowState, error)) *MockStore_WatchStateList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchStateListForKeys provides a mock function for the type MockStore
+func (_mock *MockStore) WatchStateListForKeys(keys []model.WatchKey) ([]*model.WatchWorkflowState, error) {
+	ret := _mock.Called(keys)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchStateListForKeys")
+	}
+
+	var r0 []*model.WatchWorkflowState
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func([]model.WatchKey) ([]*model.WatchWorkflowState, error)); ok {
+		return returnFunc(keys)
+	}
+	if returnFunc, ok := ret.Get(0).(func([]model.WatchKey) []*model.WatchWorkflowState); ok {
+		r0 = returnFunc(keys)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.WatchWorkflowState)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func([]model.WatchKey) error); ok {
+		r1 = returnFunc(keys)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WatchStateListForKeys_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchStateListForKeys'
+type MockStore_WatchStateListForKeys_Call struct {
+	*mock.Call
+}
+
+// WatchStateListForKeys is a helper method to define mock.On call
+//   - keys []model.WatchKey
+func (_e *MockStore_Expecter) WatchStateListForKeys(keys any) *MockStore_WatchStateListForKeys_Call {
+	return &MockStore_WatchStateListForKeys_Call{Call: _e.mock.On("WatchStateListForKeys", keys)}
+}
+
+func (_c *MockStore_WatchStateListForKeys_Call) Run(run func(keys []model.WatchKey)) *MockStore_WatchStateListForKeys_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []model.WatchKey
+		if args[0] != nil {
+			arg0 = args[0].([]model.WatchKey)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchStateListForKeys_Call) Return(watchWorkflowStates []*model.WatchWorkflowState, err error) *MockStore_WatchStateListForKeys_Call {
+	_c.Call.Return(watchWorkflowStates, err)
+	return _c
+}
+
+func (_c *MockStore_WatchStateListForKeys_Call) RunAndReturn(run func(keys []model.WatchKey) ([]*model.WatchWorkflowState, error)) *MockStore_WatchStateListForKeys_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchStateReplace provides a mock function for the type MockStore
+func (_mock *MockStore) WatchStateReplace(repoID int64, event model.WebhookEvent, target string, states []*model.WatchWorkflowState) error {
+	ret := _mock.Called(repoID, event, target, states)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchStateReplace")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, model.WebhookEvent, string, []*model.WatchWorkflowState) error); ok {
+		r0 = returnFunc(repoID, event, target, states)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_WatchStateReplace_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchStateReplace'
+type MockStore_WatchStateReplace_Call struct {
+	*mock.Call
+}
+
+// WatchStateReplace is a helper method to define mock.On call
+//   - repoID int64
+//   - event model.WebhookEvent
+//   - target string
+//   - states []*model.WatchWorkflowState
+func (_e *MockStore_Expecter) WatchStateReplace(repoID any, event any, target any, states any) *MockStore_WatchStateReplace_Call {
+	return &MockStore_WatchStateReplace_Call{Call: _e.mock.On("WatchStateReplace", repoID, event, target, states)}
+}
+
+func (_c *MockStore_WatchStateReplace_Call) Run(run func(repoID int64, event model.WebhookEvent, target string, states []*model.WatchWorkflowState)) *MockStore_WatchStateReplace_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 model.WebhookEvent
+		if args[1] != nil {
+			arg1 = args[1].(model.WebhookEvent)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []*model.WatchWorkflowState
+		if args[3] != nil {
+			arg3 = args[3].([]*model.WatchWorkflowState)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchStateReplace_Call) Return(err error) *MockStore_WatchStateReplace_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_WatchStateReplace_Call) RunAndReturn(run func(repoID int64, event model.WebhookEvent, target string, states []*model.WatchWorkflowState) error) *MockStore_WatchStateReplace_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WatchUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) WatchUpdate(w *model.PipelineWatch) error {
+	ret := _mock.Called(w)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WatchUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.PipelineWatch) error); ok {
+		r0 = returnFunc(w)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_WatchUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WatchUpdate'
+type MockStore_WatchUpdate_Call struct {
+	*mock.Call
+}
+
+// WatchUpdate is a helper method to define mock.On call
+//   - w *model.PipelineWatch
+func (_e *MockStore_Expecter) WatchUpdate(w any) *MockStore_WatchUpdate_Call {
+	return &MockStore_WatchUpdate_Call{Call: _e.mock.On("WatchUpdate", w)}
+}
+
+func (_c *MockStore_WatchUpdate_Call) Run(run func(w *model.PipelineWatch)) *MockStore_WatchUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.PipelineWatch
+		if args[0] != nil {
+			arg0 = args[0].(*model.PipelineWatch)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WatchUpdate_Call) Return(err error) *MockStore_WatchUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_WatchUpdate_Call) RunAndReturn(run func(w *model.PipelineWatch) error) *MockStore_WatchUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }

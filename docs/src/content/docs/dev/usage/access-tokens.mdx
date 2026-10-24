@@ -14,7 +14,7 @@ A request made with a token can do at most what both the token and your account 
 | --- | --- |
 | `repo:read` | Read repositories, pipelines, logs, cron jobs and organizations, and follow pipeline events. |
 | `repo:write` | Everything in `repo:read`, plus start, cancel, approve and restart pipelines, manage cron jobs and delete logs. |
-| `repo:admin` | Everything in `repo:write`, plus repository settings, secrets, registries, notifications, activation, deletion, repair, ownership changes, moves and settings import, and organization secrets, registries and agents. |
+| `repo:admin` | Everything in `repo:write`, plus repository settings, secrets, registries, activation, deletion, repair, ownership changes, moves and settings import, and organization secrets, registries and agents. |
 | `user:read` | Read your account: profile, feed, repository and organization lists, linked forges, identities, integrations and access tokens. Also instance-wide lists open to every user (agents, autoscalers, global secret and registry names, metrics, the signature public key). |
 | `user:write` | Everything in `user:read`, plus change your account: integrations, linked forges and identities, and access tokens. |
 | `admin:read` | Read instance administration: users, all repositories, organizations, the queue, maintenance, agent and autoscaler logs, forge details and instance-wide metrics. |
@@ -30,9 +30,10 @@ The admin scopes are only available to users whose [roles](/dev/configuration/ro
 | Area | Read (`GET`) | Change (other methods) |
 | --- | --- | --- |
 | `/repos/{id}` pipelines, logs, branches, configs, cron jobs, approvals | `repo:read` | `repo:write` |
-| Repository settings, secrets, registries, notifications, import, chown, repair, move and deletion | `repo:admin` | `repo:admin` |
+| Repository settings, secrets, registries, import, chown, repair, move and deletion | `repo:admin` | `repo:admin` |
 | Deleting a pipeline | | `repo:admin` |
 | Activating a repository (`POST /repos`) | | `repo:admin` |
+| Your watches of a repository (`/repos/{id}/watches`) | `repo:read` | `repo:read` |
 | `/repos/lookup/...`, `/stream/logs/...`, `/stream/events` | `repo:read` | |
 | `/orgs/{id}`, `/orgs/lookup/...`, organization permissions | `repo:read` | |
 | Organization secrets, registries and agents | `repo:admin` | `repo:admin` |

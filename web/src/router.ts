@@ -255,6 +255,12 @@ const routes: RouteRecordRaw[] = [
         props: true,
       },
       {
+        path: 'watching',
+        name: 'user-watching',
+        component: (): Component => import('~/views/user/UserWatching.vue'),
+        props: true,
+      },
+      {
         path: 'cli-and-api',
         name: 'user-cli-and-api',
         component: (): Component => import('~/views/user/UserCLIAndAPI.vue'),

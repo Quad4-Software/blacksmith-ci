@@ -33,11 +33,14 @@ import (
 // The family of a route follows its guard:
 //   - repository and organization routes need repo:*, where reads need
 //     repo:read, changes need repo:write, and settings, secrets, registries,
-//     notifications, org secrets/registries/agents and repo deletion, repair,
+//     org secrets/registries/agents and repo deletion, repair,
 //     chown, move and import need repo:admin (also for reads);
 //   - /user routes and instance-wide reads open to every signed-in user need user:*;
 //   - routes guarded by an instance permission or admin need admin:*;
 //   - public routes stay reachable, but run as an anonymous request.
+//
+// Watches of a repository are the exception: they only change the token
+// owner's own subscriptions, so repo:read is enough also for changes.
 //
 // Tokens limited to an organization or a repository cannot use user or admin
 // routes, which reach beyond that limit; reading the token owner's own profile
@@ -172,7 +175,10 @@ var scopeRules = []scopeRule{
 	fixedRule(nil, v1+"/repos/:repo_id/secrets/*", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/registries/*", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/caches/*", model.ScopeRepoAdmin),
-	fixedRule(nil, v1+"/repos/:repo_id/notification", model.ScopeRepoAdmin),
+	// Watches are the token owner's own subscriptions, so repo:read lets a
+	// reader manage them; they change no repository state.
+	fixedRule(nil, v1+"/repos/:repo_id/watches", model.ScopeRepoRead),
+	fixedRule(nil, v1+"/repos/:repo_id/watches/*", model.ScopeRepoRead),
 	fixedRule(nil, v1+"/repos/:repo_id/importable", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/import-preview/*", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/import-settings", model.ScopeRepoAdmin),

@@ -76,6 +76,31 @@ type Store interface {
 	// UserCreateWithIdentity registers a user with a fresh personal org and an identity provider account in one transaction.
 	UserCreateWithIdentity(*model.User, *model.UserIdentity) error
 
+	// Pipeline watches.
+
+	// WatchCreate stores a watch; the (user, repo, event, target) key is unique and a duplicate returns an error.
+	WatchCreate(w *model.PipelineWatch) error
+	// WatchFind returns a watch by ID, or types.RecordNotExist.
+	WatchFind(id int64) (*model.PipelineWatch, error)
+	// WatchFindByKey returns the watch of a user for a key, or types.RecordNotExist.
+	WatchFindByKey(userID, repoID int64, event model.WebhookEvent, target string) (*model.PipelineWatch, error)
+	// WatchUpdate persists changes to a watch.
+	WatchUpdate(w *model.PipelineWatch) error
+	// WatchDelete removes a watch by ID, together with the workflow states of its key when no other watch refers to the key.
+	WatchDelete(id int64) error
+	// WatchListByUser returns all watches of a user.
+	WatchListByUser(userID int64) ([]*model.PipelineWatch, error)
+	// WatchListByUserRepo returns the watches of a user in one repo.
+	WatchListByUserRepo(userID, repoID int64) ([]*model.PipelineWatch, error)
+	// WatchListByKey returns the watches of all users for one key.
+	WatchListByKey(repoID int64, event model.WebhookEvent, target string) ([]*model.PipelineWatch, error)
+	// WatchStateList returns the workflow states of one key.
+	WatchStateList(repoID int64, event model.WebhookEvent, target string) ([]*model.WatchWorkflowState, error)
+	// WatchStateListForKeys returns the workflow states of many keys at once.
+	WatchStateListForKeys(keys []model.WatchKey) ([]*model.WatchWorkflowState, error)
+	// WatchStateReplace swaps the workflow states of one key for the given ones in a transaction.
+	WatchStateReplace(repoID int64, event model.WebhookEvent, target string, states []*model.WatchWorkflowState) error
+
 	// Build caches
 	// BuildCacheCreate inserts a cache entry; types.ErrConflict when the key already exists in its scope.
 	BuildCacheCreate(*model.BuildCache) error
@@ -399,16 +424,6 @@ type Store interface {
 	IntegrationCreate(*model.Integration) error
 	IntegrationUpdate(*model.Integration) error
 	IntegrationDelete(*model.Integration) error
-
-	// Notification Configs
-	NotificationConfigFind(repoID int64) (*model.NotificationConfig, error)
-	NotificationConfigUpsert(*model.NotificationConfig) error
-	NotificationConfigDelete(repoID int64) error
-
-	// Email Unsubscribes
-	EmailUnsubscribeFind(userID, repoID int64) (*model.EmailUnsubscribe, error)
-	EmailUnsubscribeCreate(*model.EmailUnsubscribe) error
-	EmailUnsubscribeDelete(userID, repoID int64) error
 
 	// Maintenance
 	MaintenanceConfigGet() (*model.MaintenanceConfig, error)

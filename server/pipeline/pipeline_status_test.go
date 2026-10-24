@@ -16,6 +16,7 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -23,7 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
+	watch_mocks "codefloe.com/crowci/crow/v6/server/services/watch/mocks"
 	"codefloe.com/crowci/crow/v6/server/store"
 	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
@@ -99,4 +102,34 @@ func TestUpdateToStatusKilled(t *testing.T) {
 
 	assert.Equal(t, model.StatusKilled, pipeline.Status)
 	assert.LessOrEqual(t, now, pipeline.Finished)
+}
+
+func TestNotifyWatchersIfFinished(t *testing.T) {
+	// not parallel: swaps the global watch service
+	svc := watch_mocks.NewMockService(t)
+	orig := server.Config.Services.WatchService
+	server.Config.Services.WatchService = svc
+	t.Cleanup(func() { server.Config.Services.WatchService = orig })
+
+	repo := &model.Repo{ID: 1, FullName: "o/r"}
+	done := &model.Workflow{ID: 1, State: model.StatusFailure}
+	pending := &model.Workflow{ID: 2, State: model.StatusPending}
+
+	// still running, and not a genuine outcome: nothing is evaluated
+	notifyWatchersIfFinished(t.Context(), repo, &model.Pipeline{ID: 1, Status: model.StatusFailure, Workflows: []*model.Workflow{done, pending}})
+	notifyWatchersIfFinished(t.Context(), repo, &model.Pipeline{ID: 2, Status: model.StatusKilled, Workflows: []*model.Workflow{done}})
+
+	called := make(chan *model.Pipeline, 1)
+	svc.EXPECT().PipelineFinished(mock.Anything, repo, mock.Anything).RunAndReturn(func(_ context.Context, _ *model.Repo, p *model.Pipeline) error {
+		called <- p
+		return nil
+	}).Once()
+	notifyWatchersIfFinished(t.Context(), repo, &model.Pipeline{ID: 3, Status: model.StatusFailure, Workflows: []*model.Workflow{done}})
+	select {
+	case p := <-called:
+		assert.Equal(t, int64(3), p.ID)
+		assert.Equal(t, model.StatusFailure, p.Status)
+	case <-time.After(2 * time.Second):
+		t.Fatal("watch service was not called for a finished pipeline")
+	}
 }

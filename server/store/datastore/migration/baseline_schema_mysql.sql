@@ -54,6 +54,36 @@ CREATE TABLE IF NOT EXISTS user_identities (
     INDEX idx_user_identities_user_id (user_id)
 );
 
+CREATE TABLE IF NOT EXISTS pipeline_watches (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    repo_id BIGINT NOT NULL,
+    watch_event VARCHAR(50) NOT NULL,
+    watch_target VARBINARY(255) NOT NULL,
+    in_app BOOLEAN NOT NULL,
+    email_enabled BOOLEAN NOT NULL,
+    email_events TEXT,
+    last_read_pipeline BIGINT NOT NULL DEFAULT 0,
+    created_at BIGINT,
+    updated_at BIGINT,
+    UNIQUE(user_id, repo_id, watch_event, watch_target),
+    INDEX idx_pipeline_watches_key (repo_id, watch_event, watch_target)
+);
+
+CREATE TABLE IF NOT EXISTS watch_workflow_states (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    repo_id BIGINT NOT NULL,
+    watch_event VARCHAR(50) NOT NULL,
+    watch_target VARBINARY(255) NOT NULL,
+    workflow_name VARBINARY(255) NOT NULL,
+    failing BOOLEAN NOT NULL,
+    pipeline_id BIGINT NOT NULL,
+    pipeline_number BIGINT NOT NULL,
+    runs_since_seen BIGINT NOT NULL DEFAULT 0,
+    updated_at BIGINT,
+    UNIQUE(repo_id, watch_event, watch_target, workflow_name)
+);
+
 CREATE TABLE IF NOT EXISTS build_caches (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     repo_id BIGINT NOT NULL,
@@ -504,24 +534,6 @@ CREATE TABLE IF NOT EXISTS integrations (
     is_active BOOLEAN DEFAULT true,
     created_at INTEGER,
     updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS notification_configs (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    repo_id INTEGER NOT NULL UNIQUE,
-    is_enabled BOOLEAN DEFAULT true,
-    events TEXT,
-    created_at INTEGER,
-    updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS email_unsubscribes (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id INTEGER NOT NULL,
-    repo_id INTEGER NOT NULL,
-    email TEXT NOT NULL,
-    created_at INTEGER,
-    UNIQUE(user_id, repo_id)
 );
 
 CREATE TABLE IF NOT EXISTS approved_pull_requests (

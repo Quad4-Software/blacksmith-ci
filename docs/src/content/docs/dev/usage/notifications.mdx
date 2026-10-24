@@ -1,15 +1,132 @@
 ---
-title: "Email Notifications"
+title: "Watching pipelines and notifications"
 ---
 
 import { Steps } from '@astrojs/starlight/components';
 
-Crow CI can send email notifications when pipelines complete.
-Notifications are sent to the commit author's email address.
+Crow CI lets every user watch the pipelines they care about.
+A watch is personal: it only affects what you see and receive, never what other users see.
+Nothing is watched by default.
 
-## Setup
+A watch has two independent channels:
 
-Email notifications require two levels of configuration: server-level SMTP settings and per-repository opt-in.
+- **In-app**: failing watched pipelines show up in the bell in the header and in the watching overview.
+- **Email**: an optional email for the events you select.
+
+:::caution[Breaking change]
+Watches replace the former repository-level email notifications.
+The repository notification settings and the emails sent to commit authors were removed.
+Existing repository notification settings are not migrated to watches.
+Anyone who relied on commit-author emails must create watches instead.
+The `notify:` block in workflow files is ignored and produces a deprecation warning.
+:::
+
+## Watching a pipeline
+
+Any user with pull access to a repository can watch its pipelines.
+Repository admin rights are not needed.
+
+<Steps>
+
+1. **Open a pipeline**
+
+    Open a pipeline of the repository in the Crow web UI.
+
+2. **Click Watch**
+
+    Click **Watch** in the pipeline header.
+    A panel titled with the watch label, for example **Watch push → main**, opens.
+    The watch covers every future run with the same trigger.
+
+3. **Choose channels and events**
+
+    Keep **Show failures in Crow** enabled to see failures in the header bell.
+    Enable **Send emails** and select the events you want to receive.
+    Click **Save**.
+
+</Steps>
+
+Once a watch exists, the button reads **Watching**.
+Open the panel again to change the settings or click **Unwatch**.
+
+You can also manage the watches of a repository in **Repository Settings > Watches**.
+This page is called "Your watched pipelines in &lt;repo&gt;" and is available to every user with pull access.
+Use **Watch a pipeline** to pick an event and then a branch, cron name or environment.
+
+A new watch has **Show failures in Crow** enabled, **Send emails** disabled and, once email is enabled, only the **Pipeline fails** event selected.
+At least one channel must stay enabled: the panel disables **Save** and the API rejects a watch with both channels off.
+To stop watching, click **Unwatch**.
+If the server has no SMTP configured or your account has no email address, **Send emails** is shown off and cannot be enabled.
+
+### What a watch covers
+
+A pipeline is a single run started by one trigger.
+A watch identifies a recurring pipeline by that trigger:
+
+| Event | Watch key | Example label |
+| --- | --- | --- |
+| `push` | event and branch | push → main |
+| `manual` | event and branch | manual → main |
+| `cron` | event and cron name | cron · nightly |
+| `deployment` | event and target environment | deploy → production |
+| `tag` | event only | tag |
+| `release` | event only | release |
+
+Pull request pipelines cannot be watched.
+
+Watching applies to the pipeline as a whole, not to individual workflows.
+If any workflow of a run fails, the run counts as failing.
+
+### Which runs count
+
+Only genuine outcomes count: success, failure and error.
+An error counts as a failure, and so does a configuration error.
+Runs that were canceled or killed, declined, skipped, blocked, pending or still running are ignored.
+They never change the state of a watch and never send an email.
+
+## In-app overview
+
+The bell in the header shows the number of unread failing watches.
+The badge counts watches, not workflows, and is hidden at zero.
+Click the bell to list the failing watches, unread first.
+Only watches with **Show failures in Crow** enabled appear in the bell and count in the badge.
+Each entry shows the repository, the watch label, the pipeline number, the failed workflows with the run each last failed in, for example `build (#10), test (#12)`, and the time of the failure.
+Click an entry to open that pipeline, or use **Mark read** to clear it from the badge.
+**Mark all read** marks every entry at once.
+
+The dropdown links to **View all watched pipelines**, the full overview at `/user/watching`.
+Users without admin rights on a repository also find **Your watches** in the repository header.
+It opens **Repository Settings > Watches** for that repository.
+The overview has two tabs:
+
+- **Failing**: your failing watches with the in-app channel enabled, grouped as **Unread** and **Read**, with **Mark read** and **Unwatch**.
+- **All watched**: every watch across all repositories, including email-only ones, with its channels and the status of its last run, plus **Edit** and **Unwatch**.
+
+The counter updates without a page reload when a watched pipeline finishes.
+
+### Unread and read
+
+- A failing watch is unread until you mark it as read.
+- A read watch stays in the overview, greyed out, while it keeps failing, but it is not counted in the badge.
+- A new failing run on a read watch makes it unread again.
+- A watch leaves the overview on its own as soon as all of its workflows pass again, whether it was read or not.
+- A watch you create while its latest run is already failing starts as read, so that the failure you are looking at does not bump the badge.
+
+### Workflows are tracked individually
+
+Runs do not always contain the same workflows, because path filters and `when` conditions skip some of them.
+Crow therefore tracks the state per workflow name within a watch.
+A run only updates the workflows it actually ran, and skipped workflows keep their previous state.
+
+For example, a push to `main` fails in the `build` workflow in run 10.
+Run 11 is a docs-only push where only the `docs` workflow runs and passes.
+After run 11, `build` is still failing and the watch stays in the overview until a run in which `build` itself passes.
+The overview entry names the workflows that are still failing and links to the most recent run that failed.
+
+A workflow that is removed from the configuration can never be fixed by a run.
+Crow stops counting it after 20 runs of the watch that do not contain it.
+
+## Email
 
 <Steps>
 
@@ -27,64 +144,27 @@ Email notifications require two levels of configuration: server-level SMTP setti
 
     See the [notification environment variables](/dev/configuration/env-vars/notifications/) for details on each setting.
 
-2. **Enable notifications for a repository**
+2. **Enable email on a watch**
 
-    In the Crow web UI, navigate to **Repository Settings > Notifications** and enable email notifications.
-    Select which events should trigger an email.
+    Enable **Send emails** on a watch and select the events.
 
 </Steps>
 
-## Events
+Emails are sent to the email address of your Crow account.
+One email is sent per user and per qualifying run.
+Without SMTP on the server, or without an email address on your account, the email option is disabled and explains why.
 
-Notifications can be triggered on the following events:
+### Events
 
 | Event | Description |
 | --- | --- |
-| **Failure** | Pipeline finished with a failure or error status. |
-| **Success** | Pipeline finished successfully. |
-| **Status change** | Pipeline status differs from the previous pipeline on the same branch (e.g. a previously passing pipeline now fails, or vice versa). Note: the first pipeline on a branch has no previous status, so this event will not fire for it. |
+| **Failure** | A run of the watched pipeline finished with a failure or error status. This is the default. |
+| **Success** | A run of the watched pipeline finished successfully. |
+| **Status change** | The watch as a whole flipped between failing and passing, following the per-workflow rules above. |
 
-The default when enabling notifications is **Failure** only.
+Because of the per-workflow tracking, a docs-only run that passes does not send a misleading "fixed" email while `build` is still failing.
 
-Notifications are only sent for genuine build outcomes (success, failure, error).
-Pipelines that were canceled, superseded by a newer pipeline (e.g. a follow-up push to the same branch that cancels the previous run), declined, or skipped never trigger a notification, regardless of the configured events.
-
-## Per-pipeline YAML override
-
-Repository-level notification settings can be overridden in individual workflow files using the `notify:` block.
-
-### Disable notifications for a workflow
-
-```yaml
-steps:
-  - name: build
-    image: golang
-    commands:
-      - go build ./...
-
-notify:
-  disabled: true
-```
-
-### Override events for a workflow
-
-```yaml
-steps:
-  - name: deploy
-    image: alpine
-    commands:
-      - ./deploy.sh
-
-notify:
-  events:
-    - success
-    - failure
-```
-
-When a `notify:` block is present in any workflow file, it takes precedence over the repository-level settings for that pipeline run.
-If multiple workflow files define `notify:`, the first one found is used.
-
-## Email content
+### Email content
 
 Notification emails contain:
 
@@ -93,6 +173,19 @@ Notification emails contain:
 - Branch and commit hash
 - Commit message (first line)
 - Link to the pipeline in the Crow web UI
+
+### Unsubscribing
+
+Every email contains an unsubscribe link.
+The link turns off the email channel of that single watch.
+If the in-app channel of that watch is off as well, the watch is deleted.
+
+## The deprecated notify block
+
+The `notify:` block in workflow files is no longer used.
+It is still parsed so that existing pipeline files keep working, but its contents are ignored.
+The linter reports a non-blocking deprecation warning: "The `notify:` block is deprecated and ignored. Watch the pipeline in the Crow UI instead."
+Remove the block and watch the pipeline instead.
 
 ## Admin SMTP status
 

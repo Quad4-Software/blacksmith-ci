@@ -103,6 +103,9 @@
             </Button>
           </div>
         </template>
+        <div v-if="isAuthenticated && repoPermissions!.pull && watchKeyFor(pipeline)" class="flex shrink-0 gap-2">
+          <WatchPopover :repo-id="repo.id" :pipeline="pipeline" />
+        </div>
         <DeployPipelinePopup
           :pipeline-number="pipelineId"
           :open="showDeployPipelinePopup"
@@ -169,14 +172,17 @@ import DeployPipelinePopup from '~/components/layout/popups/DeployPipelinePopup.
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import Tab from '~/components/layout/scaffold/Tab.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import WatchPopover from '~/components/watch/WatchPopover.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
+import useAuthentication from '~/compositions/useAuthentication';
 import { useFavicon } from '~/compositions/useFavicon';
 import { provide, requiredInject } from '~/compositions/useInjectProvide';
 import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import usePipeline from '~/compositions/usePipeline';
 import { useRouteBack } from '~/compositions/useRouteBack';
+import { watchKeyFor } from '~/lib/watchKey';
 import { usePipelineStore } from '~/store/pipelines';
 import type { Pipeline, PipelineConfig } from '~/lib/api/types';
 
@@ -193,6 +199,7 @@ const notifications = useNotifications();
 const favicon = useFavicon();
 const i18n = useI18n();
 const overlay = useLoadingOverlay();
+const { isAuthenticated } = useAuthentication();
 
 const pipelineStore = usePipelineStore();
 const pipelineId = toRef(props, 'pipelineId');

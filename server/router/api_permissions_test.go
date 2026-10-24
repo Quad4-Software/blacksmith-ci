@@ -176,6 +176,33 @@ var userRoutes = []struct {
 	{http.MethodPost, "/api/v1/user/identities/ldap", http.StatusNotFound},
 }
 
+// Routes that need a signed-in user; the guard store has no watch data, so a
+// handler reached by the user ends in a 500 from the store panic.
+var userWatchRoutes = []struct {
+	method, path string
+}{
+	{http.MethodGet, "/api/v1/user/watches"},
+	{http.MethodPost, "/api/v1/user/watches/read"},
+	{http.MethodPost, "/api/v1/user/watches/1/read"},
+	{http.MethodPatch, "/api/v1/user/watches/1"},
+	{http.MethodDelete, "/api/v1/user/watches/1"},
+	{http.MethodGet, "/api/v1/repos/1/watches"},
+	{http.MethodPost, "/api/v1/repos/1/watches"},
+	{http.MethodGet, "/api/v1/repos/1/watches/suggestions"},
+}
+
+func TestWatchRoutesRequireUser(t *testing.T) {
+	for _, r := range userWatchRoutes {
+		t.Run(r.method+" "+r.path, func(t *testing.T) {
+			req := httptest.NewRequest(r.method, r.path, strings.NewReader(`{"in_app":true}`))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			newGuardEngine(t, nil).ServeHTTP(w, req)
+			assert.Equal(t, http.StatusUnauthorized, w.Code)
+		})
+	}
+}
+
 func TestUserRoutes(t *testing.T) {
 	for _, r := range userRoutes {
 		t.Run(r.method+" "+r.path, func(t *testing.T) {

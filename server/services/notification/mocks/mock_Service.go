@@ -48,75 +48,6 @@ func (_m *MockService) EXPECT() *MockService_Expecter {
 	return &MockService_Expecter{mock: &_m.Mock}
 }
 
-// Dispatch provides a mock function for the type MockService
-func (_mock *MockService) Dispatch(ctx context.Context, repo *model.Repo, pipeline *model.Pipeline, previousStatus model.StatusValue) error {
-	ret := _mock.Called(ctx, repo, pipeline, previousStatus)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Dispatch")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.Repo, *model.Pipeline, model.StatusValue) error); ok {
-		r0 = returnFunc(ctx, repo, pipeline, previousStatus)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockService_Dispatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Dispatch'
-type MockService_Dispatch_Call struct {
-	*mock.Call
-}
-
-// Dispatch is a helper method to define mock.On call
-//   - ctx context.Context
-//   - repo *model.Repo
-//   - pipeline *model.Pipeline
-//   - previousStatus model.StatusValue
-func (_e *MockService_Expecter) Dispatch(ctx any, repo any, pipeline any, previousStatus any) *MockService_Dispatch_Call {
-	return &MockService_Dispatch_Call{Call: _e.mock.On("Dispatch", ctx, repo, pipeline, previousStatus)}
-}
-
-func (_c *MockService_Dispatch_Call) Run(run func(ctx context.Context, repo *model.Repo, pipeline *model.Pipeline, previousStatus model.StatusValue)) *MockService_Dispatch_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 *model.Repo
-		if args[1] != nil {
-			arg1 = args[1].(*model.Repo)
-		}
-		var arg2 *model.Pipeline
-		if args[2] != nil {
-			arg2 = args[2].(*model.Pipeline)
-		}
-		var arg3 model.StatusValue
-		if args[3] != nil {
-			arg3 = args[3].(model.StatusValue)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-			arg3,
-		)
-	})
-	return _c
-}
-
-func (_c *MockService_Dispatch_Call) Return(err error) *MockService_Dispatch_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockService_Dispatch_Call) RunAndReturn(run func(ctx context.Context, repo *model.Repo, pipeline *model.Pipeline, previousStatus model.StatusValue) error) *MockService_Dispatch_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // SMTPStatus provides a mock function for the type MockService
 func (_mock *MockService) SMTPStatus() notification.SMTPStatus {
 	ret := _mock.Called()
@@ -157,6 +88,87 @@ func (_c *MockService_SMTPStatus_Call) Return(sMTPStatus notification.SMTPStatus
 }
 
 func (_c *MockService_SMTPStatus_Call) RunAndReturn(run func() notification.SMTPStatus) *MockService_SMTPStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SendPipelineEmail provides a mock function for the type MockService
+func (_mock *MockService) SendPipelineEmail(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, statusLabel string, unsubscribeURL string) error {
+	ret := _mock.Called(ctx, to, repo, pipeline, statusLabel, unsubscribeURL)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendPipelineEmail")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *model.Repo, *model.Pipeline, string, string) error); ok {
+		r0 = returnFunc(ctx, to, repo, pipeline, statusLabel, unsubscribeURL)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockService_SendPipelineEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendPipelineEmail'
+type MockService_SendPipelineEmail_Call struct {
+	*mock.Call
+}
+
+// SendPipelineEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - to string
+//   - repo *model.Repo
+//   - pipeline *model.Pipeline
+//   - statusLabel string
+//   - unsubscribeURL string
+func (_e *MockService_Expecter) SendPipelineEmail(ctx any, to any, repo any, pipeline any, statusLabel any, unsubscribeURL any) *MockService_SendPipelineEmail_Call {
+	return &MockService_SendPipelineEmail_Call{Call: _e.mock.On("SendPipelineEmail", ctx, to, repo, pipeline, statusLabel, unsubscribeURL)}
+}
+
+func (_c *MockService_SendPipelineEmail_Call) Run(run func(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, statusLabel string, unsubscribeURL string)) *MockService_SendPipelineEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 *model.Pipeline
+		if args[3] != nil {
+			arg3 = args[3].(*model.Pipeline)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		var arg5 string
+		if args[5] != nil {
+			arg5 = args[5].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_SendPipelineEmail_Call) Return(err error) *MockService_SendPipelineEmail_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockService_SendPipelineEmail_Call) RunAndReturn(run func(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, statusLabel string, unsubscribeURL string) error) *MockService_SendPipelineEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -74,17 +74,17 @@ func cleanupTestTables(db *sql.DB) {
 	// Drop tables with FK dependencies first, then the rest.
 	tables := []string{
 		"secret_targets", "pipeline_configs",
-		"email_unsubscribes",
 		"migrations",
 		"migration",
 		"users", "repos", "pipelines", "workflows", "steps", "tasks",
 		"log_entries", "configs", "secrets", "registries",
 		"perms", "agents", "autoscalers", "crons", "orgs", "forges",
-		"server_configs", "access_tokens", "integrations", "notification_configs",
+		"server_configs", "access_tokens", "integrations",
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
 		"cache_entries", "maintenance_config", "maintenance_operation_config",
 		"maintenance_stats", "maintenance_logs",
 		"user_forges", "user_identities", "redirections", "build_caches",
+		"pipeline_watches", "watch_workflow_states",
 		"build_cache_settings", "build_cache_buckets", "build_cache_usage",
 		"table_exists_probe",
 	}

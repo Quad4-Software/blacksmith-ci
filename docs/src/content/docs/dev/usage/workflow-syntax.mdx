@@ -89,26 +89,11 @@ If set, they are only used for workflow naming and not passed to the environment
 
 ## notify
 
-The `notify` block overrides the repository-level [email notification](/dev/usage/notifications/) settings for a single pipeline run.
-
-To disable notifications entirely for a workflow:
-
-```yaml
-notify:
-  disabled: true
-```
-
-To override which events trigger a notification:
-
-```yaml
-notify:
-  events:
-    - success
-    - failure
-    - status_change
-```
-
-See the [email notifications](/dev/usage/notifications/) documentation for the full list of events and setup instructions.
+:::caution
+The `notify` block is deprecated and ignored.
+It is still parsed so that existing files keep working, and the linter reports a warning.
+Watch the pipeline in the Crow UI instead, see [watching pipelines](/dev/usage/notifications/).
+:::
 
 ## depends_on
 

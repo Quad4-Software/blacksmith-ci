@@ -36,6 +36,7 @@ declare global {
     CROW_USER_REGISTERED_AGENTS: boolean | undefined;
     CROW_SCHEDULING_STRATEGY: string | undefined;
     CROW_AUTH: AuthConfig | undefined;
+    CROW_SMTP_CONFIGURED: boolean | undefined;
     CROW_CUSTOM_THEMES: CustomThemeConfig[] | null | undefined;
     CROW_AGENT_PROTOCOL: AgentProtocol | undefined;
     CROW_AGENT_AUTO_RESTART: AgentAutoRestart | undefined;
@@ -55,6 +56,7 @@ export default () => ({
   schedulingStrategy: window.CROW_SCHEDULING_STRATEGY ?? '',
   agentProtocol: window.CROW_AGENT_PROTOCOL ?? null,
   agentAutoRestart: window.CROW_AGENT_AUTO_RESTART ?? null,
+  smtpConfigured: window.CROW_SMTP_CONFIGURED === true,
   auth: window.CROW_AUTH ?? {
     oidc: { enabled: false, name: '' },
     ldap: { enabled: false, name: '' },

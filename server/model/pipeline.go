@@ -63,7 +63,6 @@ type Pipeline struct {
 	FromFork            bool                   `json:"from_fork,omitempty"     bun:"from_fork"`
 	LogsDeleted         bool                   `json:"logs_deleted,omitempty"  bun:"logs_deleted"`
 	IsAlwaysApproved    bool                   `json:"is_always_approved,omitempty" bun:"-"`
-	NotifyOverride      *NotifyYAMLConfig      `json:"notify_override,omitempty"   bun:"notify_override,type:text"`
 } //	@name	Pipeline
 
 // TableName returns the database table name.

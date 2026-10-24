@@ -60,10 +60,10 @@ var (
 	_ bun.BeforeAppendModelHook = (*Pipeline)(nil)
 	_ bun.BeforeAppendModelHook = (*Registry)(nil)
 	_ bun.BeforeAppendModelHook = (*Secret)(nil)
-	_ bun.BeforeAppendModelHook = (*NotificationConfig)(nil)
-	_ bun.BeforeAppendModelHook = (*EmailUnsubscribe)(nil)
 	_ bun.BeforeAppendModelHook = (*AccessToken)(nil)
 	_ bun.BeforeAppendModelHook = (*Integration)(nil)
+	_ bun.BeforeAppendModelHook = (*PipelineWatch)(nil)
+	_ bun.BeforeAppendModelHook = (*WatchWorkflowState)(nil)
 )
 
 func (a *Agent) BeforeAppendModel(_ context.Context, query bun.Query) error {
@@ -111,16 +111,6 @@ func (s *Secret) BeforeAppendModel(_ context.Context, query bun.Query) error {
 	return nil
 }
 
-func (n *NotificationConfig) BeforeAppendModel(_ context.Context, query bun.Query) error {
-	setTimestamps(query, &n.CreatedAt, &n.UpdatedAt)
-	return nil
-}
-
-func (e *EmailUnsubscribe) BeforeAppendModel(_ context.Context, query bun.Query) error {
-	setTimestamps(query, &e.CreatedAt, nil)
-	return nil
-}
-
 func (t *AccessToken) BeforeAppendModel(_ context.Context, query bun.Query) error {
 	setTimestamps(query, &t.CreatedAt, &t.UpdatedAt)
 	return nil
@@ -128,5 +118,15 @@ func (t *AccessToken) BeforeAppendModel(_ context.Context, query bun.Query) erro
 
 func (i *Integration) BeforeAppendModel(_ context.Context, query bun.Query) error {
 	setTimestamps(query, &i.CreatedAt, &i.UpdatedAt)
+	return nil
+}
+
+func (w *PipelineWatch) BeforeAppendModel(_ context.Context, query bun.Query) error {
+	setTimestamps(query, &w.CreatedAt, &w.UpdatedAt)
+	return nil
+}
+
+func (w *WatchWorkflowState) BeforeAppendModel(_ context.Context, query bun.Query) error {
+	setTimestamps(query, nil, &w.UpdatedAt)
 	return nil
 }

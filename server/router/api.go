@@ -103,6 +103,33 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.GetUserPendingApprovals)
 
+	// User watches
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "list-user-watches", Method: http.MethodGet, Path: "/user/watches",
+		Summary: "List the pipeline watches of the current user", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.ListUserWatches)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "mark-user-watches-read", Method: http.MethodPost, Path: "/user/watches/read",
+		Summary: "Mark all watches of the current user as read", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.MarkUserWatchesRead)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "mark-user-watch-read", Method: http.MethodPost, Path: "/user/watches/{watch_id}/read",
+		Summary: "Mark a watch as read", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.MarkUserWatchRead)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "update-user-watch", Method: http.MethodPatch, Path: "/user/watches/{watch_id}",
+		Summary: "Update the channels of a watch", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.UpdateUserWatch)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-user-watch", Method: http.MethodDelete, Path: "/user/watches/{watch_id}",
+		Summary: "Delete a watch", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteUserWatch)
+
 	// User forge connections (multi-forge support)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-user-forges", Method: http.MethodGet, Path: "/user/forges",
@@ -707,22 +734,23 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.DeleteCron)
 
-	// Repo notification config
+	// Repo watches
+	repoWatchMW := huma.Middlewares{hmMustUser, hmSetRepo, hmSetPerm, hmMustPull}
 	huma.Register(humaAPI, huma.Operation{
-		OperationID: "get-repo-notification-config", Method: http.MethodGet, Path: "/repos/{repo_id}/notification",
-		Summary: "Get repository notification config", Tags: []string{"Repository Notifications"},
-		Security: BearerSecurity, Middlewares: repoAdminMW,
-	}, api.GetRepoNotificationConfig)
+		OperationID: "list-repo-watches", Method: http.MethodGet, Path: "/repos/{repo_id}/watches",
+		Summary: "List the current user's watches of a repository", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: repoWatchMW,
+	}, api.ListRepoWatches)
 	huma.Register(humaAPI, huma.Operation{
-		OperationID: "put-repo-notification-config", Method: http.MethodPut, Path: "/repos/{repo_id}/notification",
-		Summary: "Create or update repository notification config", Tags: []string{"Repository Notifications"},
-		Security: BearerSecurity, Middlewares: repoAdminMW,
-	}, api.PutRepoNotificationConfig)
+		OperationID: "create-repo-watch", Method: http.MethodPost, Path: "/repos/{repo_id}/watches",
+		Summary: "Watch the pipelines of a branch, cron, deployment target, tag or release", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: repoWatchMW,
+	}, api.CreateRepoWatch)
 	huma.Register(humaAPI, huma.Operation{
-		OperationID: "delete-repo-notification-config", Method: http.MethodDelete, Path: "/repos/{repo_id}/notification",
-		Summary: "Delete repository notification config", Tags: []string{"Repository Notifications"},
-		Security: BearerSecurity, Middlewares: repoAdminMW,
-	}, api.DeleteRepoNotificationConfig)
+		OperationID: "list-repo-watch-suggestions", Method: http.MethodGet, Path: "/repos/{repo_id}/watches/suggestions",
+		Summary: "List watchable targets seen in recent pipelines", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: repoWatchMW,
+	}, api.ListRepoWatchSuggestions)
 
 	// Repo admin operations
 	huma.Register(humaAPI, huma.Operation{

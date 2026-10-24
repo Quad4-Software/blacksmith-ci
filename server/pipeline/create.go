@@ -209,6 +209,7 @@ func updatePipelineWithErr(ctx context.Context, _forge forge.Forge, _store store
 	*pipeline = *_pipeline
 
 	publishPipeline(ctx, _forge, pipeline, repo, repoUser)
+	notifyWatchers(ctx, repo, pipeline)
 
 	return nil
 }

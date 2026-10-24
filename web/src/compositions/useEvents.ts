@@ -1,6 +1,9 @@
 import { debounce } from 'lodash';
 
 import usePipelineFeed from '~/compositions/usePipelineFeed';
+import { refreshWatchesDebounced, useWatches } from '~/compositions/useWatches';
+import type { Pipeline } from '~/lib/api/types';
+import { watchKeyFor } from '~/lib/watchKey';
 import { useAuthStore } from '~/store/auth';
 import { usePipelineStore } from '~/store/pipelines';
 import { useRepoStore } from '~/store/repos';
@@ -8,6 +11,8 @@ import useApiClient from './useApiClient';
 
 const apiClient = useApiClient();
 let initialized = false;
+
+const terminalStatuses = new Set(['success', 'failure', 'error', 'killed', 'declined', 'skipped']);
 
 export default () => {
   if (initialized) {
@@ -17,8 +22,20 @@ export default () => {
   const repoStore = useRepoStore();
   const pipelineStore = usePipelineStore();
   const pipelineFeed = usePipelineFeed();
+  const { items: watchItems } = useWatches();
 
   initialized = true;
+
+  // Whether the pipeline belongs to a key the user watches. Without this check
+  // every finished pipeline the stream delivers would refetch the watches.
+  const isWatched = (repoId: number, pipeline: Pipeline): boolean => {
+    if (watchItems.value.length === 0) return false;
+    const key = watchKeyFor(pipeline);
+    if (!key) return false;
+    return watchItems.value.some(
+      (i) => i.watch.repo_id === repoId && i.watch.event === key.event && i.watch.target === key.target,
+    );
+  };
 
   // The navbar approval-gate badge counts pending gates via a separate endpoint
   // that SSE does not drive. A gate transition (block / approve / decline /
@@ -50,6 +67,11 @@ export default () => {
       pipelineStore.markAsSSEDelivered(repo.id, pipeline.number);
 
       refreshApprovals();
+
+      // Watch state only changes when a watched pipeline reaches a terminal status.
+      if (terminalStatuses.has(pipeline.status) && isWatched(repo.id, pipeline)) {
+        refreshWatchesDebounced();
+      }
     });
 
   // The server does not replay missed events. Refresh shared state as well as
@@ -58,6 +80,7 @@ export default () => {
     if (!authStore.isAuthenticated) return;
     pipelineStore.markSseReconnect();
     void pipelineFeed.load().catch(console.error);
+    refreshWatchesDebounced();
   }, 250);
 
   let events = connect();
@@ -88,6 +111,7 @@ export default () => {
     resume.cancel();
     refresh.cancel();
     refreshApprovals.cancel();
+    refreshWatchesDebounced.cancel();
     events.removeEventListener('open', refresh);
     events.close();
     initialized = false;

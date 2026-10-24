@@ -78,6 +78,14 @@
   "pipeline_feed": "Pipeline feed",
   "pipeline_feed_agents_title": "Processed by",
   "navbar": {
+    "watches": {
+      "title": "Watched pipelines failing",
+      "tooltip": "{count} unread failing watch | {count} unread failing watches",
+      "mark_all_read": "Mark all read",
+      "mark_read": "Mark read",
+      "empty": "None of your watched pipelines are failing.",
+      "view_all": "View all watched pipelines"
+    },
     "forge_auth_expired": "Forge connections need attention",
     "forge_auth_expired_tooltip": "{count} forge connection expired | {count} forge connections expired",
     "forge_auth_view_all": "View all connections",
@@ -182,6 +190,25 @@
     "notify_updated": "API token updated successfully."
   },
   "repo": {
+    "watch": {
+      "in_app": "Show failures in Crow",
+      "in_app_desc": "Failing pipelines appear in the header bell and the watching overview.",
+      "email": "Send emails",
+      "email_desc": "Get an email for the selected events.",
+      "smtp_not_configured": "Email is unavailable because SMTP is not configured on this server.",
+      "no_user_email": "Email is unavailable because your account has no email address.",
+      "channel_required": "Enable at least one notification channel.",
+      "event_failure": "Pipeline fails",
+      "event_success": "Pipeline succeeds",
+      "event_status_change": "Status changes (for example failing to passing)",
+      "watch": "Watch",
+      "watching": "Watching",
+      "popover_title": "Watch {label}",
+      "popover_desc": "Get notified when the latest run of this kind of pipeline fails. Only you see your watches.",
+      "unwatch": "Unwatch",
+      "action_failed": "The action failed",
+      "your_watches": "Your watches"
+    },
     "manual_pipeline": {
       "run_workflow": "Run {name} on {branch}",
       "quick_run_menu": "Quick run workflow",
@@ -493,17 +520,25 @@
         }
       },
       "notifications": {
-        "notifications": "Notifications",
-        "enable_email": "Enable email notifications",
-        "enable_email_desc": "Send an email to the commit author when a pipeline event occurs.",
-        "events": "Notify on",
-        "event_success": "Success",
-        "event_failure": "Failure",
-        "event_status_change": "Status change",
-        "event_status_change_desc": "Notify when the pipeline status changes (e.g. from success to failure or vice versa).",
-        "save": "Save",
-        "saved": "Notification settings saved",
-        "smtp_not_configured": "SMTP is not configured by the server administrator. Email notifications are unavailable."
+        "notifications": "Watches",
+        "title": "Your watched pipelines in {repo}",
+        "note": "Nothing is watched by default. Only you see this list.",
+        "none": "You are not watching any pipelines in this repository.",
+        "col_watch": "Watch",
+        "col_channels": "Notify via",
+        "col_last_run": "Last run",
+        "col_actions": "Actions",
+        "no_runs": "No runs yet",
+        "channel_in_app": "In-app",
+        "channel_email": "Email",
+        "add": "Watch a pipeline",
+        "add_title": "Watch a pipeline",
+        "event": "Event",
+        "target": "Branch or name",
+        "target_placeholder": "Select or type a name",
+        "edit_title": "Edit notification settings",
+        "unwatch_title": "Stop watching?",
+        "unwatch_confirm": "You will no longer be notified about {label}."
       }
     },
     "pipeline": {
@@ -1234,6 +1269,31 @@
     }
   },
   "user": {
+    "watching": {
+      "title": "Watching",
+      "description": "Pipelines you watch. Failures show up here and in the header bell.",
+      "failing": "Failing",
+      "all": "All watched",
+      "unread": "Unread",
+      "read": "Read",
+      "none_failing": "None of your watched pipelines are failing.",
+      "none": "You are not watching any pipelines yet.",
+      "config_error": "Configuration error",
+      "mark_read": "Mark read",
+      "unwatch": "Unwatch",
+      "unwatch_title": "Stop watching?",
+      "unwatch_confirm": "You will no longer be notified about {label} in {repo}.",
+      "edit_title": "Edit notification settings",
+      "col_watch": "Watch",
+      "col_repo": "Repository",
+      "col_channels": "Notify via",
+      "col_last_run": "Last run",
+      "col_actions": "Actions",
+      "no_runs": "No runs yet",
+      "channel_in_app": "In-app",
+      "channel_email": "Email",
+      "action_failed": "The action failed"
+    },
     "settings": {
       "settings": "Settings",
       "sidebar_title": "User Settings",

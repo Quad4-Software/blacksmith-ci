@@ -173,6 +173,18 @@
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('user.watching.title')"
+                    :is-active="isActive('user-watching')"
+                  >
+                    <router-link :to="{ name: 'user-watching' }">
+                      <Icon name="ph:bell" class="size-4" />
+                      <span v-if="!isCollapsed">{{ $t('user.watching.title') }}</span>
+                    </router-link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton as-child :tooltip="$t('metrics.title')" :is-active="isActive('user-metrics')">
                     <router-link :to="{ name: 'user-metrics' }">
                       <Icon name="graph" class="size-4" />

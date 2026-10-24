@@ -778,7 +778,7 @@ See the [cache environment variables](/dev/configuration/env-vars/cache/) for al
 
 ## Email Notifications
 
-Crow can send email notifications to commit authors when pipelines complete.
+Crow can send email notifications to users who watch a pipeline.
 This requires an SMTP server.
 
 ```bash
@@ -799,7 +799,7 @@ CROW_SMTP_AUTH_TYPE=LOGIN
 | `CROW_SMTP_PASSWORD` | No | — | SMTP password |
 | `CROW_SMTP_AUTH_TYPE` | No | `LOGIN` | Auth mechanism: `LOGIN`, `PLAIN`, `CRAM-MD5`, `AUTO` (auto-discover), or `NONE` |
 
-Once configured, notifications must be enabled per-repository in **Repository Settings > Notifications**.
+Once configured, each user enables email on the pipelines they watch: see [watching pipelines](/dev/usage/notifications/).
 The SMTP configuration can be verified in **Admin Settings > Notifications**, which includes a test email button.
 
 ## Forgejo CI quota enforcement and accounting
@@ -825,7 +825,7 @@ See [CI quota enforcement and accounting](/dev/configuration/env-vars/ci-quota/)
 Each workflow is reported separately after it finishes, excluding queue time.
 Reports are idempotent and are classified as Linux, Windows, or macOS from the workflow platform.
 
-See [email notifications](/dev/usage/notifications/) for full usage documentation.
+See [watching pipelines](/dev/usage/notifications/) for full usage documentation.
 
 ## Maintenance
 

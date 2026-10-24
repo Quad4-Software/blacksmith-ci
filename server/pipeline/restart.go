@@ -125,6 +125,7 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 				log.Debug().Err(uErr).Msg("failure to update pipeline status")
 			} else {
 				updatePipelineStatus(ctx, forge, newPipeline, repo, user)
+				notifyWatchers(ctx, repo, newPipeline)
 			}
 			return newPipeline, nil
 		}

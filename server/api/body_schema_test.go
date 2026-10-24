@@ -265,20 +265,6 @@ func TestPatchIntegrationBodySchema(t *testing.T) {
 	})
 }
 
-// --- Notification ---.
-
-func TestPutNotificationConfigBodySchema(t *testing.T) {
-	typ := reflect.TypeOf(PutNotificationConfigBody{})
-
-	t.Run("enable with events", func(t *testing.T) {
-		validateBody(t, typ, `{"is_enabled": true, "events": ["failure"]}`)
-	})
-
-	t.Run("disable", func(t *testing.T) {
-		validateBody(t, typ, `{"is_enabled": false}`)
-	})
-}
-
 // --- User ---.
 
 func TestPostUserBodySchema(t *testing.T) {

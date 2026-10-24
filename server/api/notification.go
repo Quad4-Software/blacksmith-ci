@@ -16,101 +16,12 @@ package api
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v6/server"
-	"codefloe.com/crowci/crow/v6/server/model"
-	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/server/services/notification"
-	"codefloe.com/crowci/crow/v6/server/store"
-	"codefloe.com/crowci/crow/v6/server/store/types"
 )
-
-// ── Repo notification config ────────────────────────────────────────────────.
-
-type GetRepoNotificationConfigInput struct {
-	RepoID int64 `path:"repo_id" doc:"the repository id"`
-}
-
-type GetRepoNotificationConfigOutput struct {
-	Body *model.NotificationConfig
-}
-
-func GetRepoNotificationConfig(ctx context.Context, input *GetRepoNotificationConfigInput) (*GetRepoNotificationConfigOutput, error) {
-	c := ginCtx(ctx)
-	_store := store.FromContext(c)
-	repo := session.Repo(c)
-
-	config, err := _store.NotificationConfigFind(repo.ID)
-	if err != nil {
-		if !errors.Is(err, types.RecordNotExist) {
-			return nil, huma.Error500InternalServerError(fmt.Sprintf("failed to load notification config: %s", err))
-		}
-		// No config stored yet: return the implicit default.
-		return &GetRepoNotificationConfigOutput{Body: &model.NotificationConfig{
-			RepoID:    repo.ID,
-			IsEnabled: false,
-			Events:    []model.NotificationEvent{model.NotificationEventFailure},
-		}}, nil
-	}
-
-	return &GetRepoNotificationConfigOutput{Body: config}, nil
-}
-
-type PutNotificationConfigBody struct {
-	IsEnabled bool                      `json:"is_enabled" doc:"whether notifications are enabled"`
-	Events    []model.NotificationEvent `json:"events,omitempty" doc:"events to notify on"`
-}
-
-type PutRepoNotificationConfigInput struct {
-	RepoID int64 `path:"repo_id" doc:"the repository id"`
-	Body   PutNotificationConfigBody
-}
-
-type PutRepoNotificationConfigOutput struct {
-	Body *model.NotificationConfig
-}
-
-func PutRepoNotificationConfig(ctx context.Context, input *PutRepoNotificationConfigInput) (*PutRepoNotificationConfigOutput, error) {
-	c := ginCtx(ctx)
-	_store := store.FromContext(c)
-	repo := session.Repo(c)
-
-	config := &model.NotificationConfig{
-		RepoID:    repo.ID,
-		IsEnabled: input.Body.IsEnabled,
-		Events:    input.Body.Events,
-	}
-
-	if err := _store.NotificationConfigUpsert(config); err != nil {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("failed to save notification config: %s", err))
-	}
-
-	return &PutRepoNotificationConfigOutput{Body: config}, nil
-}
-
-type DeleteRepoNotificationConfigInput struct {
-	RepoID int64 `path:"repo_id" doc:"the repository id"`
-}
-
-type DeleteRepoNotificationConfigOutput struct {
-	Body struct{}
-}
-
-func DeleteRepoNotificationConfig(ctx context.Context, _ *DeleteRepoNotificationConfigInput) (*DeleteRepoNotificationConfigOutput, error) {
-	c := ginCtx(ctx)
-	_store := store.FromContext(c)
-	repo := session.Repo(c)
-
-	if err := _store.NotificationConfigDelete(repo.ID); err != nil && !errors.Is(err, types.RecordNotExist) {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("failed to delete notification config: %s", err))
-	}
-
-	return &DeleteRepoNotificationConfigOutput{}, nil
-}
 
 // ── Admin SMTP ──────────────────────────────────────────────────────────────.
 

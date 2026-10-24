@@ -34,7 +34,11 @@ import type {
   MetricSeries,
   MetricsFilter,
   MetricsTimeFilter,
-  NotificationConfig,
+  CreateWatch,
+  PipelineWatch,
+  WatchOverviewItem,
+  WatchSettings,
+  WatchSuggestion,
   Org,
   OrgPermissions,
   Pipeline,
@@ -1026,20 +1030,37 @@ export default class CrowClient extends ApiClient {
     return this._get('/api/v1/integrations/types') as Promise<IntegrationTypeInfo[]>;
   }
 
-  // Notification API methods
-  async getRepoNotificationConfig(repoId: number, opts?: RequestOptions): Promise<NotificationConfig> {
-    return this._get(`/api/v1/repos/${repoId}/notification`, opts) as Promise<NotificationConfig>;
+  // Watch API methods
+  async getUserWatches(opts?: RequestOptions): Promise<WatchOverviewItem[]> {
+    return ((await this._get('/api/v1/user/watches', opts)) as WatchOverviewItem[] | null) ?? [];
   }
 
-  async saveRepoNotificationConfig(
-    repoId: number,
-    config: Pick<NotificationConfig, 'is_enabled' | 'events'>,
-  ): Promise<NotificationConfig> {
-    return this._put(`/api/v1/repos/${repoId}/notification`, config) as Promise<NotificationConfig>;
+  async markWatchRead(id: number): Promise<void> {
+    return this._post(`/api/v1/user/watches/${id}/read`) as Promise<void>;
   }
 
-  async deleteRepoNotificationConfig(repoId: number): Promise<void> {
-    return this._delete(`/api/v1/repos/${repoId}/notification`) as Promise<void>;
+  async markAllWatchesRead(): Promise<void> {
+    return this._post('/api/v1/user/watches/read') as Promise<void>;
+  }
+
+  async updateWatch(id: number, settings: WatchSettings): Promise<PipelineWatch> {
+    return this._patch(`/api/v1/user/watches/${id}`, settings) as Promise<PipelineWatch>;
+  }
+
+  async deleteWatch(id: number): Promise<void> {
+    return this._delete(`/api/v1/user/watches/${id}`) as Promise<void>;
+  }
+
+  async getRepoWatches(repoId: number): Promise<WatchOverviewItem[]> {
+    return ((await this._get(`/api/v1/repos/${repoId}/watches`)) as WatchOverviewItem[] | null) ?? [];
+  }
+
+  async createRepoWatch(repoId: number, body: CreateWatch): Promise<PipelineWatch> {
+    return this._post(`/api/v1/repos/${repoId}/watches`, body) as Promise<PipelineWatch>;
+  }
+
+  async getRepoWatchSuggestions(repoId: number): Promise<WatchSuggestion[]> {
+    return ((await this._get(`/api/v1/repos/${repoId}/watches/suggestions`)) as WatchSuggestion[] | null) ?? [];
   }
 
   async getAdminSMTPStatus(opts?: RequestOptions): Promise<SMTPStatus> {

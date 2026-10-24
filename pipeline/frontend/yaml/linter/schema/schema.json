@@ -125,19 +125,19 @@
       }
     },
     "notify": {
-      "description": "Overrides the repository-level email notification settings for this pipeline run.",
+      "description": "Deprecated and ignored. Watch the pipeline in the Crow UI instead.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "disabled": {
           "type": "boolean",
           "default": false,
-          "description": "Disable email notifications entirely for this pipeline run."
+          "description": "Deprecated and ignored."
         },
         "events": {
           "type": "array",
           "minLength": 1,
-          "description": "Events that trigger a notification, replacing the repository-level selection.",
+          "description": "Deprecated and ignored.",
           "items": {
             "type": "string",
             "enum": ["success", "failure", "status_change"]

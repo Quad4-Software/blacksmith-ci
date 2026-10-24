@@ -16,27 +16,34 @@
         / {{ $t('repo.settings.settings') }}
       </span>
     </template>
-    <Tab
-      icon="settings-outline"
-      icon-size="1rem"
-      :to="{ name: 'repo-settings' }"
-      :title="$t('repo.settings.general.general')"
-    />
-    <Tab icon="secret" icon-size="1rem" :to="{ name: 'repo-settings-secrets' }" :title="$t('secrets.secrets')" />
-    <Tab
-      icon="docker"
-      icon-size="1rem"
-      :to="{ name: 'repo-settings-registries' }"
-      :title="$t('registries.registries')"
-    />
-    <Tab icon="cron" icon-size="1rem" :to="{ name: 'repo-settings-crons' }" :title="$t('repo.settings.crons.crons')" />
-    <Tab
-      icon="cache"
-      icon-size="1rem"
-      :to="{ name: 'repo-settings-caches' }"
-      :title="$t('repo.settings.caches.caches')"
-    />
-    <Tab icon="tag" icon-size="1rem" :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" />
+    <template v-if="repoPermissions.admin">
+      <Tab
+        icon="settings-outline"
+        icon-size="1rem"
+        :to="{ name: 'repo-settings' }"
+        :title="$t('repo.settings.general.general')"
+      />
+      <Tab icon="secret" icon-size="1rem" :to="{ name: 'repo-settings-secrets' }" :title="$t('secrets.secrets')" />
+      <Tab
+        icon="docker"
+        icon-size="1rem"
+        :to="{ name: 'repo-settings-registries' }"
+        :title="$t('registries.registries')"
+      />
+      <Tab
+        icon="cron"
+        icon-size="1rem"
+        :to="{ name: 'repo-settings-crons' }"
+        :title="$t('repo.settings.crons.crons')"
+      />
+      <Tab
+        icon="cache"
+        icon-size="1rem"
+        :to="{ name: 'repo-settings-caches' }"
+        :title="$t('repo.settings.caches.caches')"
+      />
+      <Tab icon="tag" icon-size="1rem" :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" />
+    </template>
     <Tab
       icon="email-outline"
       icon-size="1rem"
@@ -49,9 +56,9 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import Tab from '~/components/layout/scaffold/Tab.vue';
@@ -64,13 +71,17 @@ defineProps<{
 }>();
 
 const notifications = useNotifications();
+const route = useRoute();
 const router = useRouter();
 const i18n = useI18n();
 
 const repoPermissions = requiredInject('repo-permissions');
 const repo = requiredInject('repo');
 
-onMounted(async () => {
+async function guard() {
+  if (route.name === 'repo-settings-notifications' && repoPermissions.value.pull) {
+    return;
+  }
   if (!repoPermissions.value.admin) {
     notifications.notify({
       title: i18n.t('notify_title_error'),
@@ -80,7 +91,10 @@ onMounted(async () => {
     });
     await router.replace({ name: 'home' });
   }
-});
+}
+
+onMounted(guard);
+watch(() => route.name, guard);
 
 const goBack = useRouteBack({ name: 'repo' });
 </script>

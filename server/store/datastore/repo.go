@@ -158,6 +158,12 @@ func (s storage) deleteRepo(ctx context.Context, db bun.IDB, repo *model.Repo) e
 	if _, err := db.NewDelete().Model((*model.Redirection)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
+	if _, err := db.NewDelete().Model((*model.PipelineWatch)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
+		return err
+	}
+	if _, err := db.NewDelete().Model((*model.WatchWorkflowState)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
+		return err
+	}
 
 	if s.metricsPreserveDeleted {
 		// Preserve historic metrics: keep the repo's pipelines/workflows/steps

@@ -132,6 +132,8 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-agent-remote-update", Migrate: addAgentRemoteUpdate},
 		{ID: "crow-add-provisioning-progress", Migrate: addProvisioningProgress},
 		{ID: "crow-add-build-cache-management", Migrate: addBuildCacheManagement(driver)},
+		{ID: "crow-add-pipeline-watches", Migrate: createPipelineWatches(driver)},
+		{ID: "crow-drop-repo-notification-configs", Migrate: dropRepoNotificationConfigs},
 	}
 
 	if len(newMigrations) > 0 {
@@ -219,6 +221,18 @@ func baselineSchemaForDriver(driver string) string {
 	default:
 		return baselineSchemaSQLite
 	}
+}
+
+// dropRepoNotificationConfigs removes the repo-level notification settings and
+// per-repo unsubscribe records. Per-user pipeline watches replace them and the
+// old data is intentionally not migrated.
+func dropRepoNotificationConfigs(tx *sql.Tx) error {
+	for _, table := range []string{"notification_configs", "email_unsubscribes"} {
+		if _, err := tx.Exec("DROP TABLE IF EXISTS " + table); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // createEmailUnsubscribes returns a migration function that creates the email_unsubscribes
@@ -545,6 +559,120 @@ func createBuildCaches(driver string) func(tx *sql.Tx) error {
 			return nil
 		}
 		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_build_caches_last_used ON build_caches (last_used)`)
+		return err
+	}
+}
+
+// createPipelineWatches creates the tables of per-user pipeline watches and the
+// per-key workflow states they share. On MySQL watch_target and workflow_name
+// are VARBINARY: every text collation ignores case or trailing spaces, which
+// would merge distinct branch or cron names. The email column is named
+// email_enabled and not email to keep it distinct from user emails.
+func createPipelineWatches(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		var ddls []string
+		switch driver {
+		case "postgres":
+			ddls = []string{
+				`CREATE TABLE IF NOT EXISTS pipeline_watches (
+					id BIGSERIAL PRIMARY KEY,
+					user_id BIGINT NOT NULL,
+					repo_id BIGINT NOT NULL,
+					watch_event VARCHAR(50) NOT NULL,
+					watch_target VARCHAR(255) NOT NULL,
+					in_app BOOLEAN NOT NULL,
+					email_enabled BOOLEAN NOT NULL,
+					email_events TEXT,
+					last_read_pipeline BIGINT NOT NULL DEFAULT 0,
+					created_at BIGINT,
+					updated_at BIGINT,
+					UNIQUE(user_id, repo_id, watch_event, watch_target)
+				)`,
+				`CREATE TABLE IF NOT EXISTS watch_workflow_states (
+					id BIGSERIAL PRIMARY KEY,
+					repo_id BIGINT NOT NULL,
+					watch_event VARCHAR(50) NOT NULL,
+					watch_target VARCHAR(255) NOT NULL,
+					workflow_name VARCHAR(255) NOT NULL,
+					failing BOOLEAN NOT NULL,
+					pipeline_id BIGINT NOT NULL,
+					pipeline_number BIGINT NOT NULL,
+					runs_since_seen BIGINT NOT NULL DEFAULT 0,
+					updated_at BIGINT,
+					UNIQUE(repo_id, watch_event, watch_target, workflow_name)
+				)`,
+			}
+		case "mysql":
+			ddls = []string{
+				`CREATE TABLE IF NOT EXISTS pipeline_watches (
+					id BIGINT PRIMARY KEY AUTO_INCREMENT,
+					user_id BIGINT NOT NULL,
+					repo_id BIGINT NOT NULL,
+					watch_event VARCHAR(50) NOT NULL,
+					watch_target VARBINARY(255) NOT NULL,
+					in_app BOOLEAN NOT NULL,
+					email_enabled BOOLEAN NOT NULL,
+					email_events TEXT,
+					last_read_pipeline BIGINT NOT NULL DEFAULT 0,
+					created_at BIGINT,
+					updated_at BIGINT,
+					UNIQUE(user_id, repo_id, watch_event, watch_target),
+					INDEX idx_pipeline_watches_key (repo_id, watch_event, watch_target)
+				)`,
+				`CREATE TABLE IF NOT EXISTS watch_workflow_states (
+					id BIGINT PRIMARY KEY AUTO_INCREMENT,
+					repo_id BIGINT NOT NULL,
+					watch_event VARCHAR(50) NOT NULL,
+					watch_target VARBINARY(255) NOT NULL,
+					workflow_name VARBINARY(255) NOT NULL,
+					failing BOOLEAN NOT NULL,
+					pipeline_id BIGINT NOT NULL,
+					pipeline_number BIGINT NOT NULL,
+					runs_since_seen BIGINT NOT NULL DEFAULT 0,
+					updated_at BIGINT,
+					UNIQUE(repo_id, watch_event, watch_target, workflow_name)
+				)`,
+			}
+		default:
+			ddls = []string{
+				`CREATE TABLE IF NOT EXISTS pipeline_watches (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					user_id INTEGER NOT NULL,
+					repo_id INTEGER NOT NULL,
+					watch_event VARCHAR(50) NOT NULL,
+					watch_target VARCHAR(255) NOT NULL,
+					in_app BOOLEAN NOT NULL,
+					email_enabled BOOLEAN NOT NULL,
+					email_events TEXT,
+					last_read_pipeline INTEGER NOT NULL DEFAULT 0,
+					created_at INTEGER,
+					updated_at INTEGER,
+					UNIQUE(user_id, repo_id, watch_event, watch_target)
+				)`,
+				`CREATE TABLE IF NOT EXISTS watch_workflow_states (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					repo_id INTEGER NOT NULL,
+					watch_event VARCHAR(50) NOT NULL,
+					watch_target VARCHAR(255) NOT NULL,
+					workflow_name VARCHAR(255) NOT NULL,
+					failing BOOLEAN NOT NULL,
+					pipeline_id INTEGER NOT NULL,
+					pipeline_number INTEGER NOT NULL,
+					runs_since_seen INTEGER NOT NULL DEFAULT 0,
+					updated_at INTEGER,
+					UNIQUE(repo_id, watch_event, watch_target, workflow_name)
+				)`,
+			}
+		}
+		for _, ddl := range ddls {
+			if _, err := tx.Exec(ddl); err != nil {
+				return err
+			}
+		}
+		if driver == "mysql" {
+			return nil
+		}
+		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_pipeline_watches_key ON pipeline_watches (repo_id, watch_event, watch_target)`)
 		return err
 	}
 }

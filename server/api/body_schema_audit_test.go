@@ -101,10 +101,14 @@ func allBodies() []bodyEntry {
 			minimalPayload: `{"is_active":true}`, emptyOK: false,
 		},
 
-		// --- Notification ---
+		// --- Watch ---
 		{
-			name: "PutNotificationConfigBody", bodyType: reflect.TypeOf(PutNotificationConfigBody{}),
-			minimalPayload: `{"is_enabled":false}`, emptyOK: false,
+			name: "WatchSettingsBody", bodyType: reflect.TypeOf(WatchSettingsBody{}),
+			minimalPayload: `{"in_app":true,"email":false}`, emptyOK: false,
+		},
+		{
+			name: "CreateWatchBody", bodyType: reflect.TypeOf(CreateWatchBody{}),
+			minimalPayload: `{"event":"push","target":"main","in_app":true,"email":false}`, emptyOK: false,
 		},
 
 		// --- User ---

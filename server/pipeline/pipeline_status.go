@@ -16,9 +16,13 @@
 package pipeline
 
 import (
+	"context"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"codefloe.com/crowci/crow/v6/pipeline/errors"
+	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/store"
 )
@@ -63,4 +67,33 @@ func UpdateToStatusKilled(store store.Store, pipeline model.Pipeline) (*model.Pi
 	pipeline.Status = model.StatusKilled
 	pipeline.Finished = time.Now().Unix()
 	return &pipeline, store.UpdatePipeline(&pipeline)
+}
+
+// notifyWatchers evaluates the watches of a finished pipeline outside the
+// agent's Done report, for example after a configuration error.
+// It runs in the background and is a no-op when no watch service is configured.
+func notifyWatchers(ctx context.Context, repo *model.Repo, pipeline *model.Pipeline) {
+	svc := server.Config.Services.WatchService
+	if svc == nil || repo == nil || pipeline == nil {
+		return
+	}
+	p := *pipeline
+	// detach from cancellation so evaluation outlives the triggering request
+	bg := context.WithoutCancel(ctx)
+	go func() {
+		if err := svc.PipelineFinished(bg, repo, &p); err != nil {
+			log.Error().Err(err).Msgf("watch evaluation failed for %s#%d", repo.FullName, p.Number)
+		}
+	}()
+}
+
+// notifyWatchersIfFinished evaluates the watches of a pipeline whose status was
+// recomputed outside the agent's Done report, such as after an approval gate
+// decision or a workflow cancel. Like Done, it only acts once no workflow is
+// pending or running and the status is a genuine outcome.
+func notifyWatchersIfFinished(ctx context.Context, repo *model.Repo, pipeline *model.Pipeline) {
+	if pipeline == nil || !model.IsGenuineOutcome(pipeline.Status) || model.IsThereRunningStage(pipeline.Workflows) {
+		return
+	}
+	notifyWatchers(ctx, repo, pipeline)
 }

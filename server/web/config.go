@@ -94,6 +94,7 @@ func Config(c *gin.Context) {
 		"user_registered_agents": !server.Config.Agent.DisableUserRegisteredAgentRegistration,
 		"scheduling_strategy":    server.Config.Queue.SchedulingStrategy,
 		"custom_themes":          server.Config.WebUI.CustomThemes,
+		"smtp_configured":        server.Config.Services.NotificationService != nil,
 		"agent_protocol": map[string]int32{
 			"version":   proto.Version,
 			"min_agent": proto.MinAgentVersion,
@@ -143,4 +144,5 @@ window.CROW_CUSTOM_THEMES = {{ json .custom_themes }};
 window.CROW_AGENT_PROTOCOL = {{ json .agent_protocol }};
 window.CROW_AGENT_AUTO_RESTART = {{ json .agent_auto_restart }};
 window.CROW_AUTH = {{ json .auth }};
+window.CROW_SMTP_CONFIGURED = {{ .smtp_configured }};
 `

@@ -1148,30 +1148,50 @@ func (c *CompositeEncryptedStore) UserCreateWithIdentity(user *model.User, ident
 	return c.baseStore.UserCreateWithIdentity(user, identity)
 }
 
-// Notification Configs.
-func (c *CompositeEncryptedStore) NotificationConfigFind(repoID int64) (*model.NotificationConfig, error) {
-	return c.baseStore.NotificationConfigFind(repoID)
+// Pipeline watches carry no secrets - passed through to baseStore.
+
+func (c *CompositeEncryptedStore) WatchCreate(w *model.PipelineWatch) error {
+	return c.baseStore.WatchCreate(w)
 }
 
-func (c *CompositeEncryptedStore) NotificationConfigUpsert(config *model.NotificationConfig) error {
-	return c.baseStore.NotificationConfigUpsert(config)
+func (c *CompositeEncryptedStore) WatchFind(id int64) (*model.PipelineWatch, error) {
+	return c.baseStore.WatchFind(id)
 }
 
-func (c *CompositeEncryptedStore) NotificationConfigDelete(repoID int64) error {
-	return c.baseStore.NotificationConfigDelete(repoID)
+func (c *CompositeEncryptedStore) WatchFindByKey(userID, repoID int64, event model.WebhookEvent, target string) (*model.PipelineWatch, error) {
+	return c.baseStore.WatchFindByKey(userID, repoID, event, target)
 }
 
-// Email Unsubscribes.
-func (c *CompositeEncryptedStore) EmailUnsubscribeFind(userID, repoID int64) (*model.EmailUnsubscribe, error) {
-	return c.baseStore.EmailUnsubscribeFind(userID, repoID)
+func (c *CompositeEncryptedStore) WatchUpdate(w *model.PipelineWatch) error {
+	return c.baseStore.WatchUpdate(w)
 }
 
-func (c *CompositeEncryptedStore) EmailUnsubscribeCreate(unsub *model.EmailUnsubscribe) error {
-	return c.baseStore.EmailUnsubscribeCreate(unsub)
+func (c *CompositeEncryptedStore) WatchDelete(id int64) error {
+	return c.baseStore.WatchDelete(id)
 }
 
-func (c *CompositeEncryptedStore) EmailUnsubscribeDelete(userID, repoID int64) error {
-	return c.baseStore.EmailUnsubscribeDelete(userID, repoID)
+func (c *CompositeEncryptedStore) WatchListByUser(userID int64) ([]*model.PipelineWatch, error) {
+	return c.baseStore.WatchListByUser(userID)
+}
+
+func (c *CompositeEncryptedStore) WatchListByUserRepo(userID, repoID int64) ([]*model.PipelineWatch, error) {
+	return c.baseStore.WatchListByUserRepo(userID, repoID)
+}
+
+func (c *CompositeEncryptedStore) WatchListByKey(repoID int64, event model.WebhookEvent, target string) ([]*model.PipelineWatch, error) {
+	return c.baseStore.WatchListByKey(repoID, event, target)
+}
+
+func (c *CompositeEncryptedStore) WatchStateList(repoID int64, event model.WebhookEvent, target string) ([]*model.WatchWorkflowState, error) {
+	return c.baseStore.WatchStateList(repoID, event, target)
+}
+
+func (c *CompositeEncryptedStore) WatchStateListForKeys(keys []model.WatchKey) ([]*model.WatchWorkflowState, error) {
+	return c.baseStore.WatchStateListForKeys(keys)
+}
+
+func (c *CompositeEncryptedStore) WatchStateReplace(repoID int64, event model.WebhookEvent, target string, states []*model.WatchWorkflowState) error {
+	return c.baseStore.WatchStateReplace(repoID, event, target, states)
 }
 
 // Approved Pull Requests.

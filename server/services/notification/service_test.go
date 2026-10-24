@@ -155,62 +155,6 @@ func TestBuildEmailBody_EscapesHTML(t *testing.T) {
 	assert.Contains(t, body, "feat/&lt;img src=x onerror=alert(1)&gt;")
 }
 
-func TestStatusChangeLabel(t *testing.T) {
-	tests := []struct {
-		name     string
-		current  model.StatusValue
-		previous model.StatusValue
-		want     string
-	}{
-		{name: "failure with no previous", current: model.StatusFailure, previous: "", want: "failure"},
-		{name: "success with no previous", current: model.StatusSuccess, previous: "", want: "success"},
-		{name: "failure after success (broken)", current: model.StatusFailure, previous: model.StatusSuccess, want: "broken"},
-		{name: "success after failure (fixed)", current: model.StatusSuccess, previous: model.StatusFailure, want: "fixed"},
-		{name: "failure after failure (same)", current: model.StatusFailure, previous: model.StatusFailure, want: "failure"},
-		{name: "success after success (same)", current: model.StatusSuccess, previous: model.StatusSuccess, want: "success"},
-		{name: "error after success (broken)", current: model.StatusError, previous: model.StatusSuccess, want: "broken"},
-		{name: "success after error (fixed)", current: model.StatusSuccess, previous: model.StatusError, want: "fixed"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, statusChangeLabel(tt.current, tt.previous))
-		})
-	}
-}
-
-func TestShouldNotify(t *testing.T) {
-	tests := []struct {
-		name     string
-		events   []model.NotificationEvent
-		current  model.StatusValue
-		previous model.StatusValue
-		want     bool
-	}{
-		{name: "failure event matches failure", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusFailure, previous: "", want: true},
-		{name: "failure event matches error", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusError, previous: "", want: true},
-		{name: "failure event skips success", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusSuccess, previous: "", want: false},
-		{name: "success event matches success", events: []model.NotificationEvent{model.NotificationEventSuccess}, current: model.StatusSuccess, previous: "", want: true},
-		{name: "success event skips failure", events: []model.NotificationEvent{model.NotificationEventSuccess}, current: model.StatusFailure, previous: "", want: false},
-		{name: "status change detects broken", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusFailure, previous: model.StatusSuccess, want: true},
-		{name: "status change detects fixed", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusSuccess, previous: model.StatusFailure, want: true},
-		{name: "status change skips same", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusFailure, previous: model.StatusFailure, want: false},
-		{name: "status change skips no previous", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusFailure, previous: "", want: false},
-		{name: "multiple events match any", events: []model.NotificationEvent{model.NotificationEventSuccess, model.NotificationEventFailure}, current: model.StatusFailure, previous: "", want: true},
-		{name: "failure event skips killed (superseded/canceled)", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusKilled, previous: "", want: false},
-		{name: "failure event skips killed after success", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusKilled, previous: model.StatusSuccess, want: false},
-		{name: "status change skips killed after success", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusKilled, previous: model.StatusSuccess, want: false},
-		{name: "status change skips killed after failure", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusKilled, previous: model.StatusFailure, want: false},
-		{name: "failure event skips declined", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusDeclined, previous: "", want: false},
-		{name: "failure event skips skipped", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusSkipped, previous: "", want: false},
-		{name: "failure event skips blocked", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusBlocked, previous: "", want: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, shouldNotify(tt.events, tt.current, tt.previous))
-		})
-	}
-}
-
 func TestBuildEmailBody_ViewPipelineLink(t *testing.T) {
 	repo := &model.Repo{ID: 42, FullName: "crowci/crow"}
 	pipeline := &model.Pipeline{

@@ -38,7 +38,7 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 		log.Error().Err(err).Msg("failed to generate netrc file")
 	}
 
-	// get the previous pipeline so that we can send status change notifications
+	// get the previous pipeline so that its details are exposed to the steps
 	prev, err := store.GetPipelineLastBefore(repo, currentPipeline.Branch, currentPipeline.Number)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Error().Err(err).Str("repo", repo.FullName).Msgf("error getting last pipeline before pipeline number '%d'", currentPipeline.Number)
@@ -146,20 +146,6 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 		integrationSvc.ReleasePipeline(currentPipeline.ID)
 	}
 
-	// Propagate YAML notify override to the pipeline model.
-	// Use the first non-nil notify config found across workflows.
-	for _, item := range items {
-		if item.Notify != nil {
-			currentPipeline.NotifyOverride = &model.NotifyYAMLConfig{
-				Disabled: item.Notify.Disabled,
-			}
-			for _, ev := range item.Notify.Events {
-				currentPipeline.NotifyOverride.Events = append(currentPipeline.NotifyOverride.Events, model.NotificationEvent(ev))
-			}
-			break
-		}
-	}
-
 	return items, b.GeneratedConfigs, err
 }
 
@@ -174,6 +160,7 @@ func createPipelineItems(c context.Context, forge forge.Forge, store store.Store
 			log.Error().Err(uErr).Msgf("error setting error status of pipeline for %s#%d", repo.FullName, currentPipeline.Number)
 		} else {
 			updatePipelineStatus(c, forge, currentPipeline, repo, user)
+			notifyWatchers(c, repo, currentPipeline)
 		}
 
 		// generated is returned even on a blocking error: an invalid DAG is exactly

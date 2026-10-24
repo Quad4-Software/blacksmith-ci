@@ -22,4 +22,5 @@ export * from './secret';
 export * from './user';
 export * from './userForge';
 export * from './userIdentity';
+export * from './watch';
 export * from './webhook';

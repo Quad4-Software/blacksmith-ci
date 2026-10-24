@@ -17,6 +17,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -82,7 +83,8 @@ func repoDeleteTestStore(t *testing.T) (*storage, func()) {
 	return newTestStore(t,
 		new(model.Repo), new(model.Org), new(model.Pipeline), new(model.Workflow),
 		new(model.Step), new(model.Task), new(model.Perm), new(model.Registry),
-		new(model.Secret), new(model.Redirection), new(model.Config), new(model.PipelineConfig))
+		new(model.Secret), new(model.Redirection), new(model.Config), new(model.PipelineConfig),
+		new(model.PipelineWatch), new(model.WatchWorkflowState))
 }
 
 // seedRepoWithHistory creates an org, a repo, and a finished pipeline (with a
@@ -151,6 +153,37 @@ func TestDeleteRepoPurgesWhenPreserveDisabled(t *testing.T) {
 	wfCount, err := store.db.NewSelect().Model((*model.Workflow)(nil)).Where("pipeline_id = ?", pipeline.ID).Count(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), wfCount)
+}
+
+func TestDeleteRepo_RemovesWatches(t *testing.T) {
+	for _, preserve := range []bool{true, false} {
+		t.Run(fmt.Sprintf("preserve=%v", preserve), func(t *testing.T) {
+			store, closer := repoDeleteTestStore(t)
+			defer closer()
+			store.metricsPreserveDeleted = preserve
+
+			_, repo, _ := seedRepoWithHistory(t, store)
+			assert.NoError(t, store.WatchCreate(&model.PipelineWatch{UserID: 1, RepoID: repo.ID, Event: model.EventPush, Target: "main"}))
+			assert.NoError(t, store.WatchCreate(&model.PipelineWatch{UserID: 1, RepoID: repo.ID + 100, Event: model.EventPush, Target: "main"}))
+			assert.NoError(t, store.WatchStateReplace(repo.ID, model.EventPush, "main", []*model.WatchWorkflowState{
+				{RepoID: repo.ID, Event: model.EventPush, Target: "main", WorkflowName: "build", PipelineID: 1, PipelineNumber: 1},
+			}))
+
+			assert.NoError(t, store.DeleteRepo(repo))
+
+			watches, err := store.WatchListByUserRepo(1, repo.ID)
+			assert.NoError(t, err)
+			assert.Empty(t, watches)
+			states, err := store.WatchStateList(repo.ID, model.EventPush, "main")
+			assert.NoError(t, err)
+			assert.Empty(t, states)
+
+			// Watches of other repos are kept.
+			others, err := store.WatchListByUser(1)
+			assert.NoError(t, err)
+			assert.Len(t, others, 1)
+		})
+	}
 }
 
 func TestGetRepo(t *testing.T) {
@@ -326,7 +359,7 @@ func TestRepoCount(t *testing.T) {
 
 func TestRepoCrud(t *testing.T) {
 	store, closer := newTestStore(t,
-		new(model.Repo),
+		new(model.Repo), new(model.PipelineWatch), new(model.WatchWorkflowState),
 		new(model.User),
 		new(model.Perm),
 		new(model.Pipeline),
