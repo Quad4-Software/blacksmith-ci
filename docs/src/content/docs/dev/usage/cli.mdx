@@ -205,6 +205,32 @@ crow admin user rm <username>
 `--role` replaces the user's roles, so a role mapped from the identity provider that is not listed is removed.
 A mapped role can only be listed when the user already holds it.
 
+### Build Cache Limits
+
+Viewing requires the `maintenance:read` permission, changes need `maintenance:write`.
+A user is addressed by their login, an organization by its name or ID.
+See [Caching](/dev/usage/caching/#server-administrators) for how the limits apply.
+
+```sh
+# List the caches and limits of all users and organizations
+crow admin cache ls
+
+# Show the caches, limits and per-repository usage of one user or organization
+crow admin cache show <org-or-user>
+
+# Set a size limit, a monthly egress limit and a retention; omitted limits keep their value
+crow admin cache set <org-or-user> --max-size 20GiB --max-egress 100GiB --ttl 14d
+
+# Return a limit to the server default, or lift it
+crow admin cache set <org-or-user> --max-size default --max-egress unlimited
+
+# Delete all caches of a user or organization
+crow admin cache purge <org-or-user>
+
+# Remove expired caches and enforce the size limits now
+crow admin cache cleanup
+```
+
 ## Getting Help
 
 ```sh

@@ -290,6 +290,120 @@ type (
 		Entries []*BuildCache `json:"entries"`
 	}
 
+	// BuildCacheLimits are build cache limits in effect. MaxSize and
+	// MaxEgress are bytes, TTL seconds; 0 is unlimited.
+	BuildCacheLimits struct {
+		MaxSize   int64 `json:"max_size"`
+		MaxEgress int64 `json:"max_egress"`
+		TTL       int64 `json:"ttl"`
+	}
+
+	// BuildCacheOrgLimits are the build cache limits an admin sets for a
+	// user or org. 0 applies the server default, -1 lifts the limit; for
+	// TTL it keeps entries until they are evicted by size.
+	BuildCacheOrgLimits struct {
+		MaxSize   int64 `json:"max_size"`
+		MaxEgress int64 `json:"max_egress"`
+		TTL       int64 `json:"ttl"`
+	}
+
+	// BuildCacheUsage counts build cache restores, saves and traffic.
+	BuildCacheUsage struct {
+		Hits        int64 `json:"hits"`
+		PartialHits int64 `json:"partial_hits"`
+		Misses      int64 `json:"misses"`
+		Denied      int64 `json:"denied"`
+		Saves       int64 `json:"saves"`
+		Egress      int64 `json:"egress"`
+		Ingress     int64 `json:"ingress"`
+	}
+
+	// BuildCacheDailyUsage is the build cache usage of one UTC day. Own is
+	// set for the usage of a bucket the org connected.
+	BuildCacheDailyUsage struct {
+		Day int64 `json:"day"`
+		Own bool  `json:"own"`
+		BuildCacheUsage
+	}
+
+	// BuildCacheBucket is an S3-compatible bucket an org keeps its caches in.
+	// Its limits are set by the org, not by admins.
+	BuildCacheBucket struct {
+		Endpoint  string `json:"endpoint"`
+		Bucket    string `json:"bucket"`
+		Region    string `json:"region"`
+		Prefix    string `json:"prefix"`
+		MaxSize   int64  `json:"max_size"`
+		MaxEgress int64  `json:"max_egress"`
+		TTL       int64  `json:"ttl"`
+	}
+
+	// BuildCacheOrgSummary is the build cache of one user or org. Size,
+	// Entries, Repos and EgressMonth cover the server's storage, the Bucket
+	// fields the bucket the org connected. Settings are what an admin set,
+	// Limits what is in effect.
+	BuildCacheOrgSummary struct {
+		OrgID             int64               `json:"org_id"`
+		Name              string              `json:"name"`
+		IsUser            bool                `json:"is_user"`
+		Size              int64               `json:"size"`
+		Entries           int64               `json:"entries"`
+		Repos             int64               `json:"repos"`
+		BucketSize        int64               `json:"bucket_size"`
+		BucketEntries     int64               `json:"bucket_entries"`
+		Usage             BuildCacheUsage     `json:"usage"`
+		EgressMonth       int64               `json:"egress_month"`
+		BucketEgressMonth int64               `json:"bucket_egress_month"`
+		Settings          BuildCacheOrgLimits `json:"settings"`
+		Limits            BuildCacheLimits    `json:"limits"`
+		Bucket            *BuildCacheBucket   `json:"bucket,omitempty"`
+	}
+
+	// BuildCacheRepoSummary is the build cache of one repo.
+	BuildCacheRepoSummary struct {
+		RepoID   int64           `json:"repo_id"`
+		FullName string          `json:"full_name"`
+		Size     int64           `json:"size"`
+		Entries  int64           `json:"entries"`
+		Usage    BuildCacheUsage `json:"usage"`
+	}
+
+	// BuildCacheOrg is the build cache of a user or org with a breakdown
+	// per repo and day.
+	BuildCacheOrg struct {
+		BuildCacheOrgSummary
+		RepoList []*BuildCacheRepoSummary `json:"repo_list"`
+		Daily    []*BuildCacheDailyUsage  `json:"daily"`
+	}
+
+	// BuildCacheOverview is the build cache of the whole server.
+	BuildCacheOverview struct {
+		Defaults      BuildCacheLimits        `json:"defaults"`
+		MaxRepoSize   int64                   `json:"max_repo_size"`
+		MaxTotalSize  int64                   `json:"max_total_size"`
+		AllowBuckets  bool                    `json:"allow_buckets"`
+		Size          int64                   `json:"size"`
+		Entries       int64                   `json:"entries"`
+		BucketSize    int64                   `json:"bucket_size"`
+		BucketEntries int64                   `json:"bucket_entries"`
+		Usage         BuildCacheUsage         `json:"usage"`
+		EgressMonth   int64                   `json:"egress_month"`
+		Orgs          []*BuildCacheOrgSummary `json:"orgs"`
+	}
+
+	// AdminCaches is the JSON data of the server's build caches. Enabled is
+	// false when build caching is disabled on the server.
+	AdminCaches struct {
+		Enabled  bool                `json:"enabled"`
+		Overview *BuildCacheOverview `json:"overview,omitempty"`
+	}
+
+	// BuildCacheCleanup is the result of removing build caches.
+	BuildCacheCleanup struct {
+		Removed int64 `json:"removed"`
+		Freed   int64 `json:"freed"`
+	}
+
 	// PipelineOptions is the JSON data for creating a new pipeline.
 	// Exactly one of Branch and Tag must be set; the server rejects an
 	// ambiguous pair. Both are omitempty so the unset one is never sent.

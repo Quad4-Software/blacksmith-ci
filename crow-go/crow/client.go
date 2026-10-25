@@ -151,6 +151,11 @@ func (c *client) patch(rawURL string, in, out any) error {
 	return c.do(rawURL, http.MethodPatch, in, out)
 }
 
+// Helper function for making an http PUT request.
+func (c *client) put(rawURL string, in, out any) error {
+	return c.do(rawURL, http.MethodPut, in, out)
+}
+
 // Helper function for making an http DELETE request.
 func (c *client) delete(rawURL string) error {
 	return c.do(rawURL, http.MethodDelete, nil, nil)

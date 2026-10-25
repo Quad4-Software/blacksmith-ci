@@ -47,6 +47,308 @@ func (_m *MockClient) EXPECT() *MockClient_Expecter {
 	return &MockClient_Expecter{mock: &_m.Mock}
 }
 
+// AdminCacheCleanup provides a mock function for the type MockClient
+func (_mock *MockClient) AdminCacheCleanup() (*crow.BuildCacheCleanup, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdminCacheCleanup")
+	}
+
+	var r0 *crow.BuildCacheCleanup
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (*crow.BuildCacheCleanup, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() *crow.BuildCacheCleanup); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.BuildCacheCleanup)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AdminCacheCleanup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdminCacheCleanup'
+type MockClient_AdminCacheCleanup_Call struct {
+	*mock.Call
+}
+
+// AdminCacheCleanup is a helper method to define mock.On call
+func (_e *MockClient_Expecter) AdminCacheCleanup() *MockClient_AdminCacheCleanup_Call {
+	return &MockClient_AdminCacheCleanup_Call{Call: _e.mock.On("AdminCacheCleanup")}
+}
+
+func (_c *MockClient_AdminCacheCleanup_Call) Run(run func()) *MockClient_AdminCacheCleanup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockClient_AdminCacheCleanup_Call) Return(buildCacheCleanup *crow.BuildCacheCleanup, err error) *MockClient_AdminCacheCleanup_Call {
+	_c.Call.Return(buildCacheCleanup, err)
+	return _c
+}
+
+func (_c *MockClient_AdminCacheCleanup_Call) RunAndReturn(run func() (*crow.BuildCacheCleanup, error)) *MockClient_AdminCacheCleanup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AdminCacheList provides a mock function for the type MockClient
+func (_mock *MockClient) AdminCacheList() (*crow.AdminCaches, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdminCacheList")
+	}
+
+	var r0 *crow.AdminCaches
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (*crow.AdminCaches, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() *crow.AdminCaches); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.AdminCaches)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AdminCacheList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdminCacheList'
+type MockClient_AdminCacheList_Call struct {
+	*mock.Call
+}
+
+// AdminCacheList is a helper method to define mock.On call
+func (_e *MockClient_Expecter) AdminCacheList() *MockClient_AdminCacheList_Call {
+	return &MockClient_AdminCacheList_Call{Call: _e.mock.On("AdminCacheList")}
+}
+
+func (_c *MockClient_AdminCacheList_Call) Run(run func()) *MockClient_AdminCacheList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockClient_AdminCacheList_Call) Return(adminCaches *crow.AdminCaches, err error) *MockClient_AdminCacheList_Call {
+	_c.Call.Return(adminCaches, err)
+	return _c
+}
+
+func (_c *MockClient_AdminCacheList_Call) RunAndReturn(run func() (*crow.AdminCaches, error)) *MockClient_AdminCacheList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AdminCacheOrg provides a mock function for the type MockClient
+func (_mock *MockClient) AdminCacheOrg(orgID int64) (*crow.BuildCacheOrg, error) {
+	ret := _mock.Called(orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdminCacheOrg")
+	}
+
+	var r0 *crow.BuildCacheOrg
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*crow.BuildCacheOrg, error)); ok {
+		return returnFunc(orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *crow.BuildCacheOrg); ok {
+		r0 = returnFunc(orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.BuildCacheOrg)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AdminCacheOrg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdminCacheOrg'
+type MockClient_AdminCacheOrg_Call struct {
+	*mock.Call
+}
+
+// AdminCacheOrg is a helper method to define mock.On call
+//   - orgID int64
+func (_e *MockClient_Expecter) AdminCacheOrg(orgID any) *MockClient_AdminCacheOrg_Call {
+	return &MockClient_AdminCacheOrg_Call{Call: _e.mock.On("AdminCacheOrg", orgID)}
+}
+
+func (_c *MockClient_AdminCacheOrg_Call) Run(run func(orgID int64)) *MockClient_AdminCacheOrg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AdminCacheOrg_Call) Return(buildCacheOrg *crow.BuildCacheOrg, err error) *MockClient_AdminCacheOrg_Call {
+	_c.Call.Return(buildCacheOrg, err)
+	return _c
+}
+
+func (_c *MockClient_AdminCacheOrg_Call) RunAndReturn(run func(orgID int64) (*crow.BuildCacheOrg, error)) *MockClient_AdminCacheOrg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AdminCacheOrgPurge provides a mock function for the type MockClient
+func (_mock *MockClient) AdminCacheOrgPurge(orgID int64) (*crow.BuildCacheCleanup, error) {
+	ret := _mock.Called(orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdminCacheOrgPurge")
+	}
+
+	var r0 *crow.BuildCacheCleanup
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*crow.BuildCacheCleanup, error)); ok {
+		return returnFunc(orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *crow.BuildCacheCleanup); ok {
+		r0 = returnFunc(orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.BuildCacheCleanup)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AdminCacheOrgPurge_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdminCacheOrgPurge'
+type MockClient_AdminCacheOrgPurge_Call struct {
+	*mock.Call
+}
+
+// AdminCacheOrgPurge is a helper method to define mock.On call
+//   - orgID int64
+func (_e *MockClient_Expecter) AdminCacheOrgPurge(orgID any) *MockClient_AdminCacheOrgPurge_Call {
+	return &MockClient_AdminCacheOrgPurge_Call{Call: _e.mock.On("AdminCacheOrgPurge", orgID)}
+}
+
+func (_c *MockClient_AdminCacheOrgPurge_Call) Run(run func(orgID int64)) *MockClient_AdminCacheOrgPurge_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AdminCacheOrgPurge_Call) Return(buildCacheCleanup *crow.BuildCacheCleanup, err error) *MockClient_AdminCacheOrgPurge_Call {
+	_c.Call.Return(buildCacheCleanup, err)
+	return _c
+}
+
+func (_c *MockClient_AdminCacheOrgPurge_Call) RunAndReturn(run func(orgID int64) (*crow.BuildCacheCleanup, error)) *MockClient_AdminCacheOrgPurge_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AdminCacheOrgUpdate provides a mock function for the type MockClient
+func (_mock *MockClient) AdminCacheOrgUpdate(orgID int64, limits *crow.BuildCacheOrgLimits) (*crow.BuildCacheOrg, error) {
+	ret := _mock.Called(orgID, limits)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdminCacheOrgUpdate")
+	}
+
+	var r0 *crow.BuildCacheOrg
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, *crow.BuildCacheOrgLimits) (*crow.BuildCacheOrg, error)); ok {
+		return returnFunc(orgID, limits)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, *crow.BuildCacheOrgLimits) *crow.BuildCacheOrg); ok {
+		r0 = returnFunc(orgID, limits)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.BuildCacheOrg)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, *crow.BuildCacheOrgLimits) error); ok {
+		r1 = returnFunc(orgID, limits)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AdminCacheOrgUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdminCacheOrgUpdate'
+type MockClient_AdminCacheOrgUpdate_Call struct {
+	*mock.Call
+}
+
+// AdminCacheOrgUpdate is a helper method to define mock.On call
+//   - orgID int64
+//   - limits *crow.BuildCacheOrgLimits
+func (_e *MockClient_Expecter) AdminCacheOrgUpdate(orgID any, limits any) *MockClient_AdminCacheOrgUpdate_Call {
+	return &MockClient_AdminCacheOrgUpdate_Call{Call: _e.mock.On("AdminCacheOrgUpdate", orgID, limits)}
+}
+
+func (_c *MockClient_AdminCacheOrgUpdate_Call) Run(run func(orgID int64, limits *crow.BuildCacheOrgLimits)) *MockClient_AdminCacheOrgUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.BuildCacheOrgLimits
+		if args[1] != nil {
+			arg1 = args[1].(*crow.BuildCacheOrgLimits)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AdminCacheOrgUpdate_Call) Return(buildCacheOrg *crow.BuildCacheOrg, err error) *MockClient_AdminCacheOrgUpdate_Call {
+	_c.Call.Return(buildCacheOrg, err)
+	return _c
+}
+
+func (_c *MockClient_AdminCacheOrgUpdate_Call) RunAndReturn(run func(orgID int64, limits *crow.BuildCacheOrgLimits) (*crow.BuildCacheOrg, error)) *MockClient_AdminCacheOrgUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Agent provides a mock function for the type MockClient
 func (_mock *MockClient) Agent(n int64) (*crow.Agent, error) {
 	ret := _mock.Called(n)

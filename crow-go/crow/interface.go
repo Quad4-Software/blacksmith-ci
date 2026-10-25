@@ -271,6 +271,22 @@ type Client interface {
 	// RepoCachePurge deletes all build caches of a repo.
 	RepoCachePurge(repoID int64) error
 
+	// AdminCacheList returns the build caches of all users and orgs.
+	AdminCacheList() (*AdminCaches, error)
+
+	// AdminCacheOrg returns the build caches and limits of a user or org.
+	AdminCacheOrg(orgID int64) (*BuildCacheOrg, error)
+
+	// AdminCacheOrgUpdate sets the build cache limits of a user or org.
+	AdminCacheOrgUpdate(orgID int64, limits *BuildCacheOrgLimits) (*BuildCacheOrg, error)
+
+	// AdminCacheOrgPurge deletes all build caches of a user or org.
+	AdminCacheOrgPurge(orgID int64) (*BuildCacheCleanup, error)
+
+	// AdminCacheCleanup removes expired build caches and enforces the size
+	// limits at once.
+	AdminCacheCleanup() (*BuildCacheCleanup, error)
+
 	// AgentList returns a list of all registered agents.
 	AgentList() ([]*Agent, error)
 

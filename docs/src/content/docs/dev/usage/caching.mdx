@@ -147,6 +147,30 @@ From there, admins can
 - run the cleanup at once instead of waiting for the next run.
 
 Lowering a size limit evicts the least recently used caches of the owner right away.
+
+The same is available from the CLI and the API:
+
+```bash
+# list the caches and limits of all users and organizations
+crow admin cache ls
+# give a user 20 GiB and keep their caches for two weeks
+crow admin cache set <user-login> --max-size 20GiB --ttl 14d
+# lift the monthly egress limit of an organization
+crow admin cache set <org-name> --max-egress unlimited
+```
+
+`crow admin cache set` only changes the limits it is given; `default` returns a limit to the server default and `unlimited` lifts it.
+
+The API endpoints are `GET /api/v1/admin/caches`, `GET`, `PUT` and `DELETE /api/v1/admin/caches/orgs/{org_id}`, and `POST /api/v1/admin/caches/cleanup`.
+A user's caches belong to their personal organization, whose ID `GET /api/v1/orgs/lookup/{login}` returns.
+`PUT` replaces all three limits at once:
+
+```json
+{ "max_size": 21474836480, "max_egress": 0, "ttl": 1209600 }
+```
+
+`max_size` and `max_egress` are bytes, `ttl` is seconds; `0` applies the server default and `-1` lifts the limit.
+
 The defaults come from `CROW_CACHE_MAX_ORG_SIZE`, `CROW_CACHE_MAX_ORG_EGRESS` and `CROW_CACHE_TTL`, and `CROW_CACHE_MAX_REPO_SIZE` and `CROW_CACHE_MAX_TOTAL_SIZE` apply on top.
 
 Egress is counted per calendar month in UTC.

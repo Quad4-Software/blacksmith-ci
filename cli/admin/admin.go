@@ -18,6 +18,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codefloe.com/crowci/crow/v6/cli/admin/agent"
+	"codefloe.com/crowci/crow/v6/cli/admin/cache"
 	"codefloe.com/crowci/crow/v6/cli/admin/loglevel"
 	"codefloe.com/crowci/crow/v6/cli/admin/org"
 	"codefloe.com/crowci/crow/v6/cli/admin/registry"
@@ -31,6 +32,7 @@ var Command = &cli.Command{
 	Usage: "manage server settings",
 	Commands: []*cli.Command{
 		agent.Command,
+		cache.Command,
 		loglevel.Command,
 		org.Command,
 		registry.Command,
