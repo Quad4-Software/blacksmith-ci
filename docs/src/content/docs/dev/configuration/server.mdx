@@ -801,6 +801,10 @@ CROW_CACHE_S3_PATH_STYLE=true
 
 Cache steps reach the server at `CROW_HOST`, so that URL must be reachable from pipeline steps.
 With `s3`, steps also transfer archives directly to the S3 endpoint via presigned URLs.
+
+The server checks the storage at startup and every minute after.
+While it fails the check, for example because the S3 endpoint is down or refuses the credentials, the server keeps running, logs the error once, and cache steps skip caching with a warning.
+Caching resumes on its own after the next successful check.
 See the [cache environment variables](/dev/configuration/env-vars/cache/) for all settings and [build caching](/dev/usage/caching/) for the pipeline syntax.
 
 ## Email Notifications

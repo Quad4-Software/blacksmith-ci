@@ -258,3 +258,19 @@ func TestEgressLimitSkipsRestore(t *testing.T) {
 	assert.Contains(t, out, "not restoring deps: the monthly cache download limit is reached")
 	assert.NotContains(t, out, "warning")
 }
+
+func TestStorageOutageSkipsCaching(t *testing.T) {
+	h := newHarness(t)
+	require.NoError(t, os.Rename(h.storageRoot, h.storageRoot+".away"))
+	require.Error(t, h.service.CheckStorage(context.Background()))
+
+	workspace := t.TempDir()
+	writeFile(t, workspace, "a/file", "v1")
+	writeFile(t, workspace, "b/file", "v1")
+	specs := []cacheSpec{{Key: "a", Paths: []string{"a"}}, {Key: "b", Paths: []string{"b"}}}
+
+	for _, mode := range []string{"restore", "save"} {
+		out := h.run(t, mode, workspace, specs...)
+		assert.Equal(t, "warning: the build cache storage is unavailable, skipping caching\n", out, mode)
+	}
+}

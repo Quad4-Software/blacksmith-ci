@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -55,6 +56,9 @@ var (
 	ErrEgressExceeded = errors.New("cache egress limit of this month reached")
 	// ErrBucketGone means an entry's bucket was disconnected.
 	ErrBucketGone = errors.New("cache bucket is not connected")
+	// ErrStorageUnavailable means the server's storage failed its last check,
+	// so cache steps skip caching rather than wait for it.
+	ErrStorageUnavailable = errors.New("the build cache storage is unavailable")
 )
 
 const (
@@ -145,6 +149,9 @@ type Service struct {
 	config  Config
 	now     func() time.Time
 
+	// storageDown is set while the server's storage fails its checks.
+	storageDown atomic.Bool
+
 	// quotaMu serializes the quota check and the reservation, so concurrent
 	// saves on one server cannot both claim the last free space.
 	quotaMu sync.Mutex
@@ -195,6 +202,9 @@ func openS3Bucket(publicOnly bool) func(context.Context, *model.BuildCacheBucket
 // storageFor returns the storage of a bucket ID, 0 being the server's.
 func (s *Service) storageFor(ctx context.Context, bucketID int64) (Storage, error) {
 	if bucketID == model.BuildCacheGlobalStorage {
+		if s.storageDown.Load() {
+			return nil, ErrStorageUnavailable
+		}
 		return s.storage, nil
 	}
 	bucket, err := s.store.BuildCacheBucketGet(bucketID)
@@ -332,6 +342,12 @@ func (s *Service) Restore(ctx context.Context, access Access, key string, restor
 		if err := ValidateKey(prefix); err != nil {
 			return nil, err
 		}
+	}
+
+	// Answered before the lookup: a miss would make a saving step archive
+	// for nothing, and would count as a miss.
+	if access.BucketID == model.BuildCacheGlobalStorage && s.storageDown.Load() {
+		return nil, ErrStorageUnavailable
 	}
 
 	hit, err := s.findStored(ctx, access, key, restoreKeys)
@@ -836,9 +852,46 @@ func (s *Service) RunCleanup(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			// Every deletion would fail; the next run after recovery catches up.
+			if s.storageDown.Load() {
+				continue
+			}
 			if _, err := s.Cleanup(ctx); err != nil {
 				log.Error().Err(err).Msg("build cache cleanup failed")
 			}
+		}
+	}
+}
+
+// CheckStorage probes the server's storage and records whether cache requests
+// may use it, logging when that changes. A storage that cannot be probed is
+// taken to be usable.
+func (s *Service) CheckStorage(ctx context.Context) error {
+	checker, ok := s.storage.(Checker)
+	if !ok {
+		return nil
+	}
+	err := checker.Check(ctx)
+	wasDown := s.storageDown.Swap(err != nil)
+	switch {
+	case err != nil && !wasDown:
+		log.Error().Err(err).Msg("build cache storage is unavailable, cache steps skip caching until it is back")
+	case err == nil && wasDown:
+		log.Info().Msg("build cache storage is available again")
+	}
+	return err
+}
+
+// RunStorageCheck runs CheckStorage every interval until ctx is done.
+func (s *Service) RunStorageCheck(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			_ = s.CheckStorage(ctx)
 		}
 	}
 }

@@ -54,6 +54,9 @@ const (
 	buildCacheCleanupInterval = 15 * time.Minute
 	// How often the queue is checked for stuck workflows.
 	stuckQueueSweepInterval = time.Minute
+	// How often the build cache storage is probed, so cache steps skip it
+	// soon after it fails and use it again soon after it recovers.
+	buildCacheStorageCheckInterval = time.Minute
 )
 
 var (
@@ -206,6 +209,10 @@ func run(ctx context.Context, c *cli.Command) error {
 			log.Info().Msg("starting build cache cleanup ...")
 			cacheService.RunCleanup(ctx, buildCacheCleanupInterval)
 			log.Info().Msg("build cache cleanup stopped")
+			return nil
+		})
+		serviceWaitingGroup.Go(func() error {
+			cacheService.RunStorageCheck(ctx, buildCacheStorageCheckInterval)
 			return nil
 		})
 	}

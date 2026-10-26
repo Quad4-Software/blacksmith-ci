@@ -309,7 +309,9 @@ func setupBuildCache(ctx context.Context, c *cli.Command, s store.Store) error {
 	case "local":
 		storage, err = buildcache.NewLocalStorage(c.String("cache-local-path"))
 	case "s3":
-		storage, err = buildcache.NewS3Storage(ctx, buildcache.S3Options{
+		// Not checked here: an unreachable bucket must not keep the server
+		// from starting; the service checks it below and keeps checking.
+		storage, err = buildcache.OpenS3Storage(buildcache.S3Options{
 			Endpoint:  c.String("cache-s3-endpoint"),
 			Bucket:    c.String("cache-s3-bucket"),
 			Region:    c.String("cache-s3-region"),
@@ -358,6 +360,8 @@ func setupBuildCache(ctx context.Context, c *cli.Command, s store.Store) error {
 		URLExpiry:           buildCacheURLExpiry,
 	})
 	log.Info().Str("backend", backend).Msg("build cache enabled")
+	// Logs the failure; cache steps skip caching until a later check passes.
+	_ = server.Config.Services.BuildCache.CheckStorage(ctx)
 	return nil
 }
 

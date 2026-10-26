@@ -98,6 +98,10 @@ func run(ctx context.Context, getenv func(string) string, out io.Writer) {
 		} else {
 			err = p.save(ctx, spec, key)
 		}
+		if errors.Is(err, errUnavailable) {
+			fmt.Fprintf(out, "warning: %v, skipping caching\n", err)
+			return
+		}
 		if err != nil {
 			fmt.Fprintf(out, "warning: %s: %v\n", key, err)
 		}

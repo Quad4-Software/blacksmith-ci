@@ -94,6 +94,7 @@ A transfer that moves no data for a minute counts as failed and is retried the s
 While archiving, uploading or downloading, the step logs its progress every ten seconds, so a large cache shows how far it got and how fast it moves.
 An entry whose archive was removed from storage outside Crow, for example by a bucket lifecycle rule, is dropped on its next restore, and the save step of that pipeline stores it again.
 Problems that remain, such as an exceeded quota, are logged as warnings.
+While the server's cache storage is unavailable, the step logs `warning: the build cache storage is unavailable, skipping caching` and does nothing else.
 Cancelled pipelines do not save.
 
 Archives are tar files compressed with zstd.

@@ -119,6 +119,9 @@ func cacheError(c *gin.Context, err error) {
 		status = http.StatusRequestEntityTooLarge
 	case errors.Is(err, buildcache.ErrEgressExceeded):
 		status = http.StatusTooManyRequests
+	case errors.Is(err, buildcache.ErrStorageUnavailable):
+		// Logged once by the storage check, not on every request.
+		status = http.StatusServiceUnavailable
 	default:
 		log.Error().Err(err).Msg("build cache request failed")
 	}

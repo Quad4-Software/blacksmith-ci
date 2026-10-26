@@ -74,6 +74,13 @@ type MultipartStorage interface {
 	AbortMultipart(ctx context.Context, name string) error
 }
 
+// Checker is a Storage that can tell whether it is usable.
+type Checker interface {
+	// Check fails when the storage cannot be used right now, for example
+	// because the object store is down or refuses the credentials.
+	Check(ctx context.Context) error
+}
+
 // localStorage keeps archives in a directory on the server and streams them
 // through the cache API.
 type localStorage struct {
@@ -98,6 +105,18 @@ func NewLocalStorage(root string) (Storage, error) {
 
 func (l *localStorage) path(name string) string {
 	return filepath.Join(l.root, filepath.FromSlash(name))
+}
+
+// Check fails when the cache directory is gone, for example on an unmounted disk.
+func (l *localStorage) Check(context.Context) error {
+	info, err := os.Stat(l.root)
+	if err != nil {
+		return fmt.Errorf("cache directory: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("cache directory %s is not a directory", l.root)
+	}
+	return nil
 }
 
 func (l *localStorage) DownloadURL(context.Context, string, time.Duration) (string, error) {
@@ -194,6 +213,23 @@ const (
 
 // NewS3Storage connects to the bucket and verifies that it exists.
 func NewS3Storage(ctx context.Context, opts S3Options) (Storage, error) {
+	storage, err := openS3Storage(opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := storage.Check(ctx); err != nil {
+		return nil, err
+	}
+	return storage, nil
+}
+
+// OpenS3Storage sets up the bucket without contacting it, so a server can
+// start while the object store is down; Check tells when it is usable.
+func OpenS3Storage(opts S3Options) (Storage, error) {
+	return openS3Storage(opts)
+}
+
+func openS3Storage(opts S3Options) (*s3Storage, error) {
 	if opts.Endpoint == "" {
 		return nil, errors.New("S3 endpoint is required")
 	}
@@ -218,18 +254,21 @@ func NewS3Storage(ctx context.Context, opts S3Options) (Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create S3 client: %w", err)
 	}
+	return &s3Storage{client: client, bucket: opts.Bucket, prefix: opts.Prefix}, nil
+}
 
+// Check verifies that the bucket exists and the credentials may use it.
+func (s *s3Storage) Check(ctx context.Context) error {
 	checkCtx, cancel := context.WithTimeout(ctx, s3CheckTimeout)
 	defer cancel()
-	exists, err := client.BucketExists(checkCtx, opts.Bucket)
+	exists, err := s.client.BucketExists(checkCtx, s.bucket)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check if S3 bucket exists: %w", err)
+		return fmt.Errorf("failed to check if S3 bucket exists: %w", err)
 	}
 	if !exists {
-		return nil, fmt.Errorf("S3 bucket %q does not exist", opts.Bucket)
+		return fmt.Errorf("S3 bucket %q does not exist", s.bucket)
 	}
-
-	return &s3Storage{client: client, bucket: opts.Bucket, prefix: opts.Prefix}, nil
+	return nil
 }
 
 func (s *s3Storage) key(name string) string {

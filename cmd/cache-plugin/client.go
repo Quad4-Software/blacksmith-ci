@@ -47,6 +47,9 @@ var (
 	errReadOnly = errors.New("this pipeline may only restore caches (pull request from a fork)")
 	errQuota    = errors.New("cache quota exceeded")
 	errEgress   = errors.New("the monthly cache download limit is reached")
+	// A 503 is final rather than retried: the server answers it at
+	// once while its storage is down, and the step should not wait for that.
+	errUnavailable = errors.New("the build cache storage is unavailable")
 )
 
 // client talks to the server's build cache API with the workflow's cache token.
@@ -133,6 +136,8 @@ func (c *client) callOnce(ctx context.Context, endpoint string, payload []byte, 
 		return errQuota
 	case http.StatusTooManyRequests:
 		return errEgress
+	case http.StatusServiceUnavailable:
+		return errUnavailable
 	default:
 		return responseError(resp)
 	}

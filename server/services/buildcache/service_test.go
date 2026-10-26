@@ -364,3 +364,30 @@ func TestAuthorize(t *testing.T) {
 	_, err = other.Authorize(raw)
 	assert.ErrorIs(t, err, ErrUnauthorized, "signed with another secret")
 }
+
+func TestStorageOutage(t *testing.T) {
+	f := newFixture(t, Config{})
+	ctx := context.Background()
+	f.save(ctx, t, mainAccess, "go-1", "archive")
+	require.NoError(t, f.service.CheckStorage(ctx))
+
+	// The disk holding the archives goes away, as an unmounted volume would.
+	moved := f.root + ".away"
+	require.NoError(t, os.Rename(f.root, moved))
+	require.Error(t, f.service.CheckStorage(ctx))
+
+	_, err := f.service.Restore(ctx, mainAccess, "go-1", nil, false)
+	assert.ErrorIs(t, err, ErrStorageUnavailable)
+	_, err = f.service.Restore(ctx, mainAccess, "go-2", nil, true)
+	assert.ErrorIs(t, err, ErrStorageUnavailable, "a save's existence check fails before the step archives")
+	_, err = f.service.Reserve(ctx, mainAccess, "go-2", 7)
+	assert.ErrorIs(t, err, ErrStorageUnavailable)
+	_, err = f.store.BuildCacheFind(mainAccess.RepoID, "refs/heads/main", "go-2")
+	assert.ErrorIs(t, err, types.RecordNotExist, "nothing is reserved while the storage is down")
+
+	require.NoError(t, os.Rename(moved, f.root))
+	require.NoError(t, f.service.CheckStorage(ctx))
+	hit, err := f.service.Restore(ctx, mainAccess, "go-1", nil, false)
+	require.NoError(t, err)
+	assert.Equal(t, "archive", f.read(ctx, t, mainAccess, hit.Entry.ID))
+}

@@ -62,3 +62,15 @@ func TestPublicOnlyRefusesInternalEndpoints(t *testing.T) {
 	assert.NotErrorIs(t, err, ErrPrivateEndpoint, "the server's own storage may be internal")
 	assert.True(t, called)
 }
+
+func TestOpenS3StorageDoesNotConnect(t *testing.T) {
+	// Nothing listens on port 1, so only Check notices.
+	storage, err := OpenS3Storage(S3Options{Endpoint: "127.0.0.1:1", Bucket: "cache"})
+	require.NoError(t, err)
+	checker, ok := storage.(Checker)
+	require.True(t, ok)
+	require.Error(t, checker.Check(context.Background()))
+
+	_, err = NewS3Storage(context.Background(), S3Options{Endpoint: "127.0.0.1:1", Bucket: "cache"})
+	require.Error(t, err, "NewS3Storage still requires a reachable bucket")
+}
