@@ -156,7 +156,8 @@ func GetAgentTasks(ctx context.Context, input *GetAgentTasksInput) (*GetAgentTas
 		}
 	}
 
-	enriched, err := processQueueTasks(_store, running, map[int64]string{})
+	// running tasks are never stuck, so no classifier is needed
+	enriched, err := processQueueTasks(_store, running, map[int64]string{}, stuckClassifier{}, false)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("error enriching agent tasks", err)
 	}

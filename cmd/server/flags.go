@@ -231,6 +231,17 @@ var flags = append([]cli.Flag{
 		Usage:   "How often the gate timeout sweeper runs. Clamped to >=5s.",
 		Value:   30 * time.Second,
 	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_QUEUE_STUCK_THRESHOLD"),
+		Name:    "queue-stuck-threshold",
+		Usage:   "How long a workflow may wait in the queue before it is flagged as stuck in the admin queue view. 0 disables the check.",
+		Value:   time.Hour,
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_QUEUE_STUCK_NOTIFY"),
+		Name:    "queue-stuck-notify",
+		Usage:   "Email the user who triggered a pipeline once one of its workflows has waited longer than the stuck threshold. Requires SMTP.",
+	},
 	&cli.StringSliceFlag{
 		Sources: cli.EnvVars("WOODPECKER_DEFAULT_WORKFLOW_LABELS", "CROW_DEFAULT_WORKFLOW_LABELS"),
 		Name:    "default-workflow-labels",

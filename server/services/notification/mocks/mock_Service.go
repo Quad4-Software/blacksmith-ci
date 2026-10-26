@@ -6,6 +6,7 @@ package notification
 
 import (
 	"context"
+	"time"
 
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/services/notification"
@@ -169,6 +170,87 @@ func (_c *MockService_SendPipelineEmail_Call) Return(err error) *MockService_Sen
 }
 
 func (_c *MockService_SendPipelineEmail_Call) RunAndReturn(run func(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, statusLabel string, unsubscribeURL string) error) *MockService_SendPipelineEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SendStuckPipelineEmail provides a mock function for the type MockService
+func (_mock *MockService) SendStuckPipelineEmail(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, workflowNames []string, threshold time.Duration) error {
+	ret := _mock.Called(ctx, to, repo, pipeline, workflowNames, threshold)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendStuckPipelineEmail")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *model.Repo, *model.Pipeline, []string, time.Duration) error); ok {
+		r0 = returnFunc(ctx, to, repo, pipeline, workflowNames, threshold)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockService_SendStuckPipelineEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendStuckPipelineEmail'
+type MockService_SendStuckPipelineEmail_Call struct {
+	*mock.Call
+}
+
+// SendStuckPipelineEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - to string
+//   - repo *model.Repo
+//   - pipeline *model.Pipeline
+//   - workflowNames []string
+//   - threshold time.Duration
+func (_e *MockService_Expecter) SendStuckPipelineEmail(ctx any, to any, repo any, pipeline any, workflowNames any, threshold any) *MockService_SendStuckPipelineEmail_Call {
+	return &MockService_SendStuckPipelineEmail_Call{Call: _e.mock.On("SendStuckPipelineEmail", ctx, to, repo, pipeline, workflowNames, threshold)}
+}
+
+func (_c *MockService_SendStuckPipelineEmail_Call) Run(run func(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, workflowNames []string, threshold time.Duration)) *MockService_SendStuckPipelineEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 *model.Pipeline
+		if args[3] != nil {
+			arg3 = args[3].(*model.Pipeline)
+		}
+		var arg4 []string
+		if args[4] != nil {
+			arg4 = args[4].([]string)
+		}
+		var arg5 time.Duration
+		if args[5] != nil {
+			arg5 = args[5].(time.Duration)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_SendStuckPipelineEmail_Call) Return(err error) *MockService_SendStuckPipelineEmail_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockService_SendStuckPipelineEmail_Call) RunAndReturn(run func(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, workflowNames []string, threshold time.Duration) error) *MockService_SendStuckPipelineEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }

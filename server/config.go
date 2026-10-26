@@ -125,6 +125,8 @@ var Config = struct {
 		ApprovalGateTimeoutDefault          time.Duration
 		ApprovalGateTimeoutMax              time.Duration
 		ApprovalGateSweepInterval           time.Duration
+		QueueStuckThreshold                 time.Duration
+		QueueStuckNotify                    bool
 		Proxy                               struct {
 			No    string
 			HTTP  string

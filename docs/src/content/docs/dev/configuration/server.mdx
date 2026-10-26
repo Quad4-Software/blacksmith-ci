@@ -746,6 +746,33 @@ The server applies the following defaults and bounds.
 
 See [Approval gates](/dev/usage/approvals/) for the feature overview.
 
+## Stuck workflows
+
+**Admin Settings > Queue** has a **Stuck** tab that lists queued workflows that are unlikely to start on their own:
+
+- **Blocked**: the workflow waits on dependencies that have all left the queue without succeeding, so it can never run.
+  The server skips these workflows within a minute and finishes their pipeline, the same way it does when an agent reports the failed dependency.
+- **Stuck**: the workflow has waited longer than `CROW_QUEUE_STUCK_THRESHOLD`, for example because no agent matches its labels or the queue is paused.
+
+Workflows held by an approval gate are never listed, since they wait for a person on purpose.
+
+Users with the `queue:write` permission can select tasks in any tab, or all of them at once, and cancel them together.
+Canceling a task cancels its workflow like the cancel button on the pipeline page: pending steps are skipped, running ones are stopped on their agent, and the pipeline is finished once nothing is left to run.
+A queue entry whose workflow already finished is removed from the queue.
+The same action is available through the API as `POST /api/v1/queue/tasks/cancel` with a body of `{"task_ids": ["123", "124"]}`, up to 500 tasks per request.
+
+Users see their own stuck pipelines in the notification bell in the header, see [workflows stuck in the queue](/dev/usage/notifications/#workflows-stuck-in-the-queue).
+
+With `CROW_QUEUE_STUCK_NOTIFY=true` and [SMTP](#email-notifications) configured, the server emails the user who triggered a pipeline once one of its workflows crosses the threshold.
+The recipient is the Crow user whose login matches the pipeline's sender, or its commit author when the pipeline has no sender.
+The user must be connected to the repository's forge and have read access to the repository; the same applies to the bell entries.
+Each pipeline is reported once, when its first workflow crosses the threshold.
+
+| Variable                     | Default | Description                                                                  |
+| ---------------------------- | ------- | ---------------------------------------------------------------------------- |
+| `CROW_QUEUE_STUCK_THRESHOLD` | `1h`    | How long a workflow may wait before it counts as stuck. `0` disables the age check. |
+| `CROW_QUEUE_STUCK_NOTIFY`    | `false` | Email the user who triggered the pipeline once a workflow crosses the threshold. |
+
 ## Build cache
 
 Pipelines can restore and save workspace paths between runs with a `cache` section.

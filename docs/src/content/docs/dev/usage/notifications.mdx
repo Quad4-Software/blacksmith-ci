@@ -86,7 +86,7 @@ They never change the state of a watch and never send an email.
 
 ## In-app overview
 
-The bell in the header shows the number of unread failing watches.
+The bell in the header shows the number of unread failing watches, plus your [pipelines stuck in the queue](#workflows-stuck-in-the-queue).
 The badge counts watches, not workflows, and is hidden at zero.
 Click the bell to list the failing watches, unread first.
 Only watches with **Show failures in Crow** enabled appear in the bell and count in the badge.
@@ -179,6 +179,21 @@ Notification emails contain:
 Every email contains an unsubscribe link.
 The link turns off the email channel of that single watch.
 If the in-app channel of that watch is off as well, the watch is deleted.
+
+## Workflows stuck in the queue
+
+The bell also lists pipelines you triggered that have a workflow stuck in the queue, in a section above your failing watches.
+A workflow is stuck when it has waited longer than the server's threshold (one hour by default) without starting, or when it waits on dependencies that finished without succeeding.
+Usually no agent matches the workflow's labels, or the queue is paused.
+This does not depend on watching the pipeline: a pipeline counts as yours when your login on the repository's forge is its sender, or its commit author when it has no sender, and you can read the repository.
+
+Each entry names the stuck workflows and links to the pipeline.
+Stuck pipelines count towards the badge and have no read state.
+They leave the bell on their own once the workflow starts or is canceled.
+Workflows blocked on failed dependencies are skipped by the server within a minute, so they rarely stay listed.
+
+When the administrator also sets `CROW_QUEUE_STUCK_NOTIFY=true`, Crow also emails you once, when a workflow of a pipeline you triggered first crosses the threshold.
+See [stuck workflows](/dev/configuration/server/#stuck-workflows) for the admin side.
 
 ## The deprecated notify block
 

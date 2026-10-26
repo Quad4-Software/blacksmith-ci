@@ -41,23 +41,29 @@ func GetQueueInfo(c *gin.Context) {
 	info := server.Config.Services.Queue.Info(c)
 	_store := store.FromContext(c)
 
+	stuck := stuckClassifier{
+		queued:    pipeline.QueuedTaskIDs(info),
+		threshold: server.Config.Pipeline.QueueStuckThreshold,
+		now:       time.Now(),
+	}
+
 	// Create a map to store agent names by ID
 	agentNameMap := make(map[int64]string)
 
 	// Process tasks and add agent names
-	pendingWithAgents, err := processQueueTasks(_store, info.Pending, agentNameMap)
+	pendingWithAgents, err := processQueueTasks(_store, info.Pending, agentNameMap, stuck, false)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	waitingWithAgents, err := processQueueTasks(_store, info.WaitingOnDeps, agentNameMap)
+	waitingWithAgents, err := processQueueTasks(_store, info.WaitingOnDeps, agentNameMap, stuck, true)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	runningWithAgents, err := processQueueTasks(_store, info.Running, agentNameMap)
+	runningWithAgents, err := processQueueTasks(_store, info.Running, agentNameMap, stuck, false)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -79,10 +85,18 @@ func GetQueueInfo(c *gin.Context) {
 			WaitingOnDepsCount: info.Stats.WaitingOnDeps,
 			RunningCount:       info.Stats.Running,
 		},
-		Paused: info.Paused,
+		Paused:         info.Paused,
+		StuckThreshold: int64(stuck.threshold.Seconds()),
 	}
 
 	c.IndentedJSON(http.StatusOK, response)
+}
+
+// stuckClassifier holds what processQueueTasks needs to flag stuck tasks.
+type stuckClassifier struct {
+	queued    map[string]bool
+	threshold time.Duration
+	now       time.Time
 }
 
 // getAgentName finds an agent's name, utilizing a map as a cache.
@@ -110,7 +124,7 @@ func getAgentName(store store.Store, agentNameMap map[int64]string, agentID int6
 }
 
 // processQueueTasks converts tasks to QueueTask structs and adds agent names.
-func processQueueTasks(store store.Store, tasks []*model.Task, agentNameMap map[int64]string) ([]model.QueueTask, error) {
+func processQueueTasks(store store.Store, tasks []*model.Task, agentNameMap map[int64]string, stuck stuckClassifier, waiting bool) ([]model.QueueTask, error) {
 	result := make([]model.QueueTask, 0, len(tasks))
 
 	for _, task := range tasks {
@@ -138,6 +152,7 @@ func processQueueTasks(store store.Store, tasks []*model.Task, agentNameMap map[
 			taskResponse.PipelineCreated = p.Created
 			taskResponse.PipelineStarted = p.Started
 		}
+		taskResponse.StuckReason = pipeline.StuckReason(task, waiting, stuck.queued, taskResponse.PipelineCreated, stuck.threshold, stuck.now)
 
 		result = append(result, taskResponse)
 	}
@@ -175,6 +190,33 @@ func CancelQueueTask(c *gin.Context) {
 	}
 
 	c.String(http.StatusNotFound, "running task not found")
+}
+
+// maxBatchCancelTasks bounds one batch cancel request.
+const maxBatchCancelTasks = 500
+
+// CancelQueueTasks cancels a batch of queued or running tasks together with
+// their workflows.
+func CancelQueueTasks(c *gin.Context) {
+	var req model.QueueCancelTasksRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.String(http.StatusBadRequest, "invalid request body: %s", err)
+		return
+	}
+	if len(req.TaskIDs) == 0 {
+		c.String(http.StatusBadRequest, "task_ids must not be empty")
+		return
+	}
+	if len(req.TaskIDs) > maxBatchCancelTasks {
+		c.String(http.StatusBadRequest, "at most %d tasks can be canceled at once", maxBatchCancelTasks)
+		return
+	}
+
+	failed := pipeline.CancelQueuedTasks(c, store.FromContext(c), req.TaskIDs)
+	c.JSON(http.StatusOK, model.QueueCancelTasksResponse{
+		Canceled: len(req.TaskIDs) - len(failed),
+		Failed:   failed,
+	})
 }
 
 // BlockTilQueueHasRunningItem blocks until the pipeline queue has no running items.

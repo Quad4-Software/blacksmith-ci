@@ -3,18 +3,42 @@
     <DropdownMenuTrigger as-child>
       <button
         class="flex items-center justify-center gap-1.5 px-2 py-1.5 mr-1 rounded-md transition-colors hover:bg-accent"
-        :class="unreadCount > 0 ? 'bg-destructive/10 hover:bg-destructive/20' : ''"
-        :title="$t('navbar.watches.tooltip', { count: unreadCount })"
-        :aria-label="$t('navbar.watches.tooltip', { count: unreadCount })"
+        :class="attentionCount > 0 ? 'bg-destructive/10 hover:bg-destructive/20' : ''"
+        :title="bellTooltip"
+        :aria-label="bellTooltip"
         data-testid="watch-bell"
       >
-        <Icon name="ph:bell" class="size-4" :class="unreadCount > 0 ? 'text-destructive' : 'text-muted-foreground'" />
-        <span v-if="unreadCount > 0" class="text-xs font-semibold leading-none text-destructive tabular-nums">
-          {{ unreadCount }}
+        <Icon
+          name="ph:bell"
+          class="size-4"
+          :class="attentionCount > 0 ? 'text-destructive' : 'text-muted-foreground'"
+        />
+        <span v-if="attentionCount > 0" class="text-xs font-semibold leading-none text-destructive tabular-nums">
+          {{ attentionCount }}
         </span>
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-96">
+      <template v-if="stuck.length > 0">
+        <DropdownMenuLabel>{{ $t('navbar.watches.stuck_title') }}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <div class="max-h-60 overflow-y-auto">
+          <router-link
+            v-for="item in stuck"
+            :key="`${item.repo_id}-${item.pipeline_number}`"
+            :to="{ name: 'repo-pipeline', params: { repoId: item.repo_id, pipelineId: item.pipeline_number } }"
+            class="flex min-w-0 flex-col gap-0.5 rounded-sm px-2 py-2 hover:bg-accent"
+            data-testid="stuck-bell-row"
+          >
+            <span class="truncate text-sm font-medium">{{ item.repo_full_name }}</span>
+            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+            <span class="truncate text-xs text-muted-foreground">#{{ item.pipeline_number }}</span>
+            <span class="truncate text-xs text-destructive">{{ stuckWorkflowNames(item) }}</span>
+            <span class="text-xs text-muted-foreground">{{ timeAgo(item.created * 1000) }}</span>
+          </router-link>
+        </div>
+        <DropdownMenuSeparator />
+      </template>
       <DropdownMenuLabel class="flex items-center justify-between gap-2">
         <span>{{ $t('navbar.watches.title') }}</span>
         <Button
@@ -88,7 +112,8 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
 import { Button } from '~/components/ui/button';
@@ -102,12 +127,33 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { useDate } from '~/compositions/useDate';
+import { useStuckPipelines } from '~/compositions/useStuckPipelines';
 import { useWatches } from '~/compositions/useWatches';
+import type { StuckPipeline } from '~/lib/api/types';
 import { failedNames } from '~/lib/watchDisplay';
 import { watchLabel } from '~/lib/watchKey';
 
 const { timeAgo } = useDate();
 const { failing, unreadCount, load, markRead: doMarkRead, markAllRead } = useWatches();
+const { stuck, load: loadStuck } = useStuckPipelines();
+const { t } = useI18n();
+
+// Stuck pipelines have no read state: they count until they start or are canceled.
+const attentionCount = computed(() => unreadCount.value + stuck.value.length);
+const bellTooltip = computed(() =>
+  stuck.value.length > 0
+    ? t('navbar.watches.attention_tooltip', { count: attentionCount.value })
+    : t('navbar.watches.tooltip', { count: unreadCount.value }),
+);
+
+function stuckWorkflowNames(item: StuckPipeline): string {
+  return item.workflows
+    .map(
+      (w) =>
+        `${w.name} (${w.reason === 'blocked' ? t('navbar.watches.stuck_blocked') : t('navbar.watches.stuck_waiting')})`,
+    )
+    .join(', ');
+}
 
 const busy = reactive(new Set<number>());
 
@@ -124,7 +170,19 @@ async function markRead(id: number) {
 
 const { doSubmit: markAll, isLoading: isMarkingAll } = useAsyncAction(markAllRead);
 
+// Workflows become stuck by waiting, not through an event, so poll.
+const stuckPollInterval = 60_000;
+let stuckPoll: number | undefined;
+
 onMounted(() => {
   void load().catch(console.error);
+  void loadStuck().catch(console.error);
+  stuckPoll = window.setInterval(() => {
+    void loadStuck().catch(console.error);
+  }, stuckPollInterval);
+});
+
+onBeforeUnmount(() => {
+  window.clearInterval(stuckPoll);
 });
 </script>

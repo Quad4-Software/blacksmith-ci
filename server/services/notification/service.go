@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"html"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -30,6 +31,9 @@ type Service interface {
 	// SendPipelineEmail sends one pipeline outcome email to a single recipient.
 	// The statusLabel is shown in the subject, for example "fixed" or "failure".
 	SendPipelineEmail(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, statusLabel, unsubscribeURL string) error
+	// SendStuckPipelineEmail tells a single recipient that workflows of a
+	// pipeline have waited in the queue for longer than threshold.
+	SendStuckPipelineEmail(ctx context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, workflowNames []string, threshold time.Duration) error
 	// TestSMTP sends a test email to the configured From address.
 	TestSMTP(ctx context.Context) error
 	// SMTPStatus returns the non-sensitive SMTP configuration for display.
@@ -81,12 +85,7 @@ func (s *service) SendPipelineEmail(_ context.Context, to string, repo *model.Re
 		return nil
 	}
 
-	refLabel := pipeline.Branch
-	if isPullEvent(pipeline.Event) {
-		if pr := extractPRNumber(pipeline.Ref); pr != "" {
-			refLabel = "PR #" + pr
-		}
-	}
+	refLabel := pipelineRefLabel(pipeline)
 
 	subject := fmt.Sprintf("[Crow CI] %s: build #%d on %s (%s)",
 		repo.FullName,
@@ -106,6 +105,44 @@ func (s *service) SendPipelineEmail(_ context.Context, to string, repo *model.Re
 		Str("status", string(pipeline.Status)).
 		Msg("sent pipeline notification email")
 	return nil
+}
+
+func (s *service) SendStuckPipelineEmail(_ context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, workflowNames []string, threshold time.Duration) error {
+	if !s.smtpCfg.IsConfigured() {
+		return nil
+	}
+
+	refLabel := pipelineRefLabel(pipeline)
+	subject := fmt.Sprintf("[Crow CI] %s: build #%d on %s is waiting for an agent",
+		repo.FullName,
+		pipeline.Number,
+		refLabel,
+	)
+
+	var b strings.Builder
+	fmt.Fprintf(&b, `<p>These workflows have waited in the queue for more than %s and have not started yet: <b>%s</b>.</p>`,
+		html.EscapeString(threshold.String()), html.EscapeString(strings.Join(workflowNames, ", ")))
+	b.WriteString(`<p>No agent matching their labels may be online, or the queue may be paused. Check the pipeline, then cancel it or ask an administrator.</p>`)
+	b.WriteString(buildEmailBody(s.serverHost, repo, pipeline, refLabel, ""))
+
+	if err := sendEmail(s.smtpCfg, []string{to}, subject, b.String()); err != nil {
+		return fmt.Errorf("failed to send stuck notification for %s#%d: %w", repo.FullName, pipeline.Number, err)
+	}
+
+	log.Info().
+		Str("repo", repo.FullName).
+		Int64("pipeline", pipeline.Number).
+		Msg("sent stuck pipeline notification email")
+	return nil
+}
+
+func pipelineRefLabel(pipeline *model.Pipeline) string {
+	if isPullEvent(pipeline.Event) {
+		if pr := extractPRNumber(pipeline.Ref); pr != "" {
+			return "PR #" + pr
+		}
+	}
+	return pipeline.Branch
 }
 
 func isPullEvent(e model.WebhookEvent) bool {

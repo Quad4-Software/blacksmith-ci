@@ -1,9 +1,12 @@
 package api_test
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -63,6 +66,38 @@ func TestCancelQueueTask(t *testing.T) {
 			context.Writer.WriteHeaderNow()
 
 			require.Equal(t, tt.wantStatus, response.Code)
+		})
+	}
+}
+
+func TestCancelQueueTasksRejectsInvalidBodies(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tooMany := make([]string, 501)
+	for i := range tooMany {
+		tooMany[i] = strconv.Itoa(i)
+	}
+	tooManyBody, err := json.Marshal(model.QueueCancelTasksRequest{TaskIDs: tooMany})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "malformed json", body: `{`},
+		{name: "empty task list", body: `{"task_ids":[]}`},
+		{name: "too many tasks", body: string(tooManyBody)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			context, _ := gin.CreateTestContext(response)
+			context.Request = httptest.NewRequest(http.MethodPost, "/api/v1/queue/tasks/cancel", strings.NewReader(tt.body))
+
+			api.CancelQueueTasks(context)
+
+			require.Equal(t, http.StatusBadRequest, response.Code)
 		})
 	}
 }

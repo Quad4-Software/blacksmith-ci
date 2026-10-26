@@ -1,6 +1,7 @@
 import { debounce } from 'lodash';
 
 import usePipelineFeed from '~/compositions/usePipelineFeed';
+import { refreshStuckPipelinesDebounced, useStuckPipelines } from '~/compositions/useStuckPipelines';
 import { refreshWatchesDebounced, useWatches } from '~/compositions/useWatches';
 import type { Pipeline } from '~/lib/api/types';
 import { watchKeyFor } from '~/lib/watchKey';
@@ -23,6 +24,7 @@ export default () => {
   const pipelineStore = usePipelineStore();
   const pipelineFeed = usePipelineFeed();
   const { items: watchItems } = useWatches();
+  const { isStuck } = useStuckPipelines();
 
   initialized = true;
 
@@ -72,6 +74,11 @@ export default () => {
       if (terminalStatuses.has(pipeline.status) && isWatched(repo.id, pipeline)) {
         refreshWatchesDebounced();
       }
+
+      // A stuck pipeline leaves the bell once it starts running or finishes.
+      if (pipeline.status !== 'pending' && isStuck(repo.id, pipeline.number)) {
+        refreshStuckPipelinesDebounced();
+      }
     });
 
   // The server does not replay missed events. Refresh shared state as well as
@@ -81,6 +88,7 @@ export default () => {
     pipelineStore.markSseReconnect();
     void pipelineFeed.load().catch(console.error);
     refreshWatchesDebounced();
+    refreshStuckPipelinesDebounced();
   }, 250);
 
   let events = connect();

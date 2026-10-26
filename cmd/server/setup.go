@@ -635,6 +635,8 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Pipeline.ApprovalGateTimeoutDefault = c.Duration("approval-gate-timeout-default")
 	server.Config.Pipeline.ApprovalGateTimeoutMax = c.Duration("approval-gate-timeout-max")
 	server.Config.Pipeline.ApprovalGateSweepInterval = sweep
+	server.Config.Pipeline.QueueStuckThreshold = max(c.Duration("queue-stuck-threshold"), 0)
+	server.Config.Pipeline.QueueStuckNotify = c.Bool("queue-stuck-notify")
 
 	_labels := c.StringSlice("default-workflow-labels")
 	labels := make(map[string]string, len(_labels))

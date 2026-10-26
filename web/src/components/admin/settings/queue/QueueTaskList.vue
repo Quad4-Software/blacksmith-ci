@@ -8,6 +8,15 @@
       <div class="p-4">
         <!-- Header: Status, Name, Agent -->
         <div class="mb-2 flex items-center gap-3">
+          <!-- Selection checkbox, raised above the stretched link -->
+          <Checkbox
+            v-if="selectable"
+            class="relative z-10"
+            :checked="selectedIds.has(String(task.id))"
+            :aria-label="$t('admin.settings.queue.select_task', { name: task.name })"
+            @update:checked="(checked: boolean | 'indeterminate') => emit('select', task, checked === true)"
+          />
+
           <!-- Status indicator -->
           <div
             class="w-3 h-3 rounded-full shrink-0"
@@ -30,6 +39,24 @@
           <!-- Agent badge -->
           <UiBadge v-if="task.agent_name" variant="secondary" class="shrink-0">
             {{ task.agent_name }}
+          </UiBadge>
+
+          <!-- Stuck badge -->
+          <UiBadge
+            v-if="task.stuck_reason"
+            variant="destructive"
+            class="shrink-0"
+            :title="
+              task.stuck_reason === 'blocked'
+                ? $t('admin.settings.queue.stuck_reason.blocked_title')
+                : $t('admin.settings.queue.stuck_reason.waited_too_long_title', { threshold: stuckThresholdLabel })
+            "
+          >
+            {{
+              task.stuck_reason === 'blocked'
+                ? $t('admin.settings.queue.stuck_reason.blocked')
+                : $t('admin.settings.queue.stuck_reason.waited_too_long')
+            }}
           </UiBadge>
 
           <!-- Status badge -->
@@ -107,6 +134,7 @@ import Icon from '~/components/atomic/Icon.vue';
 import { Badge as UiBadge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import Card from '~/components/ui/card/Card.vue';
+import { Checkbox } from '~/components/ui/checkbox';
 import type { Task } from '~/lib/api/types';
 
 interface TaskWithStatus extends Task {
@@ -123,14 +151,21 @@ withDefaults(
     prettyDuration: (ms: number) => string;
     cancelable?: boolean;
     cancelingTaskId?: number;
+    selectable?: boolean;
+    selectedIds?: Set<string>;
+    stuckThresholdLabel?: string;
   }>(),
   {
     cancelable: false,
     cancelingTaskId: undefined,
+    selectable: false,
+    selectedIds: () => new Set<string>(),
+    stuckThresholdLabel: '',
   },
 );
 
 const emit = defineEmits<{
   cancel: [task: TaskWithStatus];
+  select: [task: TaskWithStatus, selected: boolean];
 }>();
 </script>

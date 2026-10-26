@@ -48,9 +48,11 @@ import type {
   PipelineMetadata,
   PipelineWorkflow,
   PullRequest,
+  QueueCancelTasksResponse,
   QueueInfo,
   Registry,
   RegistryWithOrg,
+  StuckPipeline,
   Repo,
   RepoCaches,
   BuildCacheBucket,
@@ -849,6 +851,10 @@ export default class CrowClient extends ApiClient {
     return this._post(`/api/v1/queue/tasks/${taskId}/cancel`);
   }
 
+  async cancelQueueTasks(taskIds: string[]): Promise<QueueCancelTasksResponse> {
+    return this._post('/api/v1/queue/tasks/cancel', { task_ids: taskIds }) as Promise<QueueCancelTasksResponse>;
+  }
+
   async getUsers(opts?: PaginationOptions, reqOpts?: RequestOptions): Promise<User[] | null> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/users?${query}`, reqOpts) as Promise<User[] | null>;
@@ -1031,6 +1037,10 @@ export default class CrowClient extends ApiClient {
   }
 
   // Watch API methods
+  async getUserStuckPipelines(opts?: RequestOptions): Promise<StuckPipeline[]> {
+    return ((await this._get('/api/v1/user/stuck-pipelines', opts)) as StuckPipeline[] | null) ?? [];
+  }
+
   async getUserWatches(opts?: RequestOptions): Promise<WatchOverviewItem[]> {
     return ((await this._get('/api/v1/user/watches', opts)) as WatchOverviewItem[] | null) ?? [];
   }

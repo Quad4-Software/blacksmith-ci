@@ -129,6 +129,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Delete a watch", Tags: []string{"Watches"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.DeleteUserWatch)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "list-user-stuck-pipelines", Method: http.MethodGet, Path: "/user/stuck-pipelines",
+		Summary: "List the current user's pipelines with workflows stuck in the queue", Tags: []string{"Watches"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.ListUserStuckPipelines)
 
 	// User forge connections (multi-forge support)
 	huma.Register(humaAPI, huma.Operation{
@@ -845,6 +850,7 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		queue.POST("/pause", session.MustPermission(model.PermQueueWrite), api.PauseQueue)
 		queue.POST("/resume", session.MustPermission(model.PermQueueWrite), api.ResumeQueue)
 		queue.POST("/tasks/:task_id/cancel", session.MustPermission(model.PermQueueWrite), api.CancelQueueTask)
+		queue.POST("/tasks/cancel", session.MustPermission(model.PermQueueWrite), api.CancelQueueTasks)
 		queue.GET("/norunningpipelines", session.MustPermission(model.PermQueueRead), api.BlockTilQueueHasRunningItem)
 	}
 

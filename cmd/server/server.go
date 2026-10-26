@@ -37,6 +37,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/bootstrap"
 	"codefloe.com/crowci/crow/v6/server/cron"
+	serverPipeline "codefloe.com/crowci/crow/v6/server/pipeline"
 	"codefloe.com/crowci/crow/v6/server/router"
 	"codefloe.com/crowci/crow/v6/server/router/middleware"
 	"codefloe.com/crowci/crow/v6/server/services/agentrestart"
@@ -51,6 +52,8 @@ const (
 	shutdownTimeout = time.Second * 5
 	// How often expired build caches are removed.
 	buildCacheCleanupInterval = 15 * time.Minute
+	// How often the queue is checked for stuck workflows.
+	stuckQueueSweepInterval = time.Minute
 )
 
 var (
@@ -175,6 +178,23 @@ func run(ctx context.Context, c *cli.Command) error {
 		log.Info().Msg("starting approval gate sweeper ...")
 		cron.RunSweeper(ctx, _store, server.Config.Services.Queue, server.Config.Pipeline.ApprovalGateSweepInterval)
 		log.Info().Msg("approval gate sweeper stopped")
+		return nil
+	})
+
+	// stuck queue sweeper: skips workflows blocked on failed dependencies
+	// and emails pipeline authors about workflows waiting past the stuck
+	// threshold. Runs on the instance holding the leader lock.
+	serviceWaitingGroup.Go(func() error {
+		log.Info().Msg("starting stuck queue sweeper ...")
+		stuckCfg := serverPipeline.StuckSweeperConfig{
+			Threshold: server.Config.Pipeline.QueueStuckThreshold,
+			Interval:  stuckQueueSweepInterval,
+		}
+		if server.Config.Pipeline.QueueStuckNotify {
+			stuckCfg.Mailer = server.Config.Services.NotificationService
+		}
+		serverPipeline.RunStuckSweeper(ctx, _store, server.Config.Services.Queue, lock.NewService(_store, server.Config.Server.InstanceID), c.Duration("cron-lock-ttl"), stuckCfg)
+		log.Info().Msg("stuck queue sweeper stopped")
 		return nil
 	})
 

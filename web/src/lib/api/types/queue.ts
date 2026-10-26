@@ -13,7 +13,12 @@ export interface Task {
   repo_id: number;
   pipeline_created: number; // Unix timestamp when the pipeline was created
   pipeline_started: number; // Unix timestamp when the pipeline started running (0 if not started)
+  stuck_reason?: QueueStuckReason;
 }
+
+// blocked: waits on dependencies that left the queue without succeeding
+// waited_too_long: waited longer than the server's stuck threshold
+export type QueueStuckReason = 'blocked' | 'waited_too_long';
 
 export interface QueueStats {
   worker_count: number;
@@ -29,4 +34,24 @@ export interface QueueInfo {
   running: Task[];
   stats: QueueStats;
   paused: boolean;
+  stuck_threshold: number; // seconds, 0 when the age check is disabled
+}
+
+export interface QueueCancelTasksResponse {
+  canceled: number;
+  failed: Record<string, string> | null;
+}
+
+export interface StuckWorkflow {
+  name: string;
+  reason: QueueStuckReason;
+}
+
+// A pipeline the current user triggered with workflows stuck in the queue.
+export interface StuckPipeline {
+  repo_id: number;
+  repo_full_name: string;
+  pipeline_number: number;
+  created: number;
+  workflows: StuckWorkflow[];
 }

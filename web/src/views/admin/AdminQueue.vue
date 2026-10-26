@@ -60,29 +60,53 @@
         <!-- Status Tabs -->
         <Tabs v-model="activeTab" class="w-full">
           <TabsList class="mb-4">
-            <TabsTrigger value="running" class="gap-2">
-              {{ $t('admin.settings.queue.running') }}
-              <UiBadge v-if="runningTasks.length > 0" variant="default" class="ml-1">
-                {{ runningTasks.length }}
-              </UiBadge>
-            </TabsTrigger>
-            <TabsTrigger value="pending" class="gap-2">
-              {{ $t('admin.settings.queue.pending') }}
-              <UiBadge v-if="pendingTasks.length > 0" variant="secondary" class="ml-1">
-                {{ pendingTasks.length }}
-              </UiBadge>
-            </TabsTrigger>
-            <TabsTrigger value="waiting_on_deps" class="gap-2">
-              {{ $t('admin.settings.queue.waiting') }}
-              <UiBadge v-if="waitingTasks.length > 0" variant="outline" class="ml-1">
-                {{ waitingTasks.length }}
+            <TabsTrigger v-for="tab in tabs" :key="tab.value" :value="tab.value" class="gap-2">
+              {{ tab.label }}
+              <UiBadge v-if="tab.tasks.length > 0" :variant="tab.badgeVariant" class="ml-1">
+                {{ tab.tasks.length }}
               </UiBadge>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="running">
+          <p v-if="activeTab === 'stuck'" class="mb-4 text-sm text-muted-foreground">
+            {{
+              queueInfo?.stuck_threshold
+                ? $t('admin.settings.queue.stuck_desc', { threshold: stuckThresholdLabel })
+                : $t('admin.settings.queue.stuck_desc_no_threshold')
+            }}
+          </p>
+
+          <!-- Batch actions -->
+          <div v-if="can('queue:write') && activeTabTasks.length > 0" class="mb-3 flex items-center gap-3 px-4">
+            <Checkbox
+              id="queue-select-all"
+              :checked="allSelected ? true : selectedTaskIds.size > 0 ? 'indeterminate' : false"
+              :disabled="batchCanceling"
+              @update:checked="(checked: boolean | 'indeterminate') => selectAll(checked === true)"
+            />
+            <label for="queue-select-all" class="text-sm text-muted-foreground">
+              {{ $t('admin.settings.queue.select_all') }}
+            </label>
+            <div class="flex-1" />
+            <Button
+              variant="destructive"
+              size="sm"
+              class="h-8"
+              :disabled="selectedTaskIds.size === 0 || batchCanceling"
+              @click="batchCancelOpen = true"
+            >
+              <Icon v-if="batchCanceling" name="spinner" class="mr-1.5 h-4 w-4 animate-spin" />
+              <Icon v-else name="close" class="mr-1.5 h-4 w-4" />
+              {{ $t('admin.settings.queue.cancel_selected') }}
+              <UiBadge v-if="selectedTaskIds.size > 0" variant="outline" class="ml-1">
+                {{ selectedTaskIds.size }}
+              </UiBadge>
+            </Button>
+          </div>
+
+          <TabsContent v-for="tab in tabs" :key="tab.value" :value="tab.value">
             <TaskList
-              :tasks="filteredRunningTasks"
+              :tasks="tab.filtered"
               :get-status-color="getStatusColor"
               :get-status-label="getStatusLabel"
               :get-status-badge-variant="getStatusBadgeVariant"
@@ -90,41 +114,15 @@
               :pretty-duration="prettyDuration"
               :cancelable="can('queue:write')"
               :canceling-task-id="cancelingTaskId"
+              :selectable="can('queue:write')"
+              :selected-ids="selectedTaskIds"
+              :stuck-threshold-label="stuckThresholdLabel"
               @cancel="taskToCancel = $event"
+              @select="toggleSelected"
             />
-            <div v-if="filteredRunningTasks.length === 0" class="text-center py-8 text-muted-foreground">
+            <div v-if="tab.filtered.length === 0" class="text-center py-8 text-muted-foreground">
               <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>{{ searchQuery ? $t('admin.settings.queue.no_match') : $t('admin.settings.queue.no_running') }}</p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="pending">
-            <TaskList
-              :tasks="filteredPendingTasks"
-              :get-status-color="getStatusColor"
-              :get-status-label="getStatusLabel"
-              :get-status-badge-variant="getStatusBadgeVariant"
-              :time-ago="timeAgo"
-              :pretty-duration="prettyDuration"
-            />
-            <div v-if="filteredPendingTasks.length === 0" class="text-center py-8 text-muted-foreground">
-              <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>{{ searchQuery ? $t('admin.settings.queue.no_match') : $t('admin.settings.queue.no_pending') }}</p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="waiting_on_deps">
-            <TaskList
-              :tasks="filteredWaitingTasks"
-              :get-status-color="getStatusColor"
-              :get-status-label="getStatusLabel"
-              :get-status-badge-variant="getStatusBadgeVariant"
-              :time-ago="timeAgo"
-              :pretty-duration="prettyDuration"
-            />
-            <div v-if="filteredWaitingTasks.length === 0" class="text-center py-8 text-muted-foreground">
-              <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>{{ searchQuery ? $t('admin.settings.queue.no_match') : $t('admin.settings.queue.no_waiting') }}</p>
+              <p>{{ searchQuery ? $t('admin.settings.queue.no_match') : tab.empty }}</p>
             </div>
           </TabsContent>
         </Tabs>
@@ -137,6 +135,28 @@
       </div>
     </div>
   </Settings>
+
+  <AlertDialog :open="batchCancelOpen" @update:open="onBatchCancelDialogOpenChange">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>
+          {{ $t('admin.settings.queue.cancel_selected_title', { count: selectedTaskIds.size }) }}
+        </AlertDialogTitle>
+        <AlertDialogDescription>{{ $t('admin.settings.queue.cancel_selected_desc') }}</AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel :disabled="batchCanceling">{{ $t('cancel') }}</AlertDialogCancel>
+        <AlertDialogAction
+          class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          :disabled="batchCanceling"
+          @click.prevent="cancelSelectedTasks"
+        >
+          <Icon v-if="batchCanceling" name="spinner" class="mr-1.5 h-4 w-4 animate-spin" />
+          {{ $t('admin.settings.queue.cancel_selected') }}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 
   <AlertDialog :open="taskToCancel !== undefined" @update:open="onCancelDialogOpenChange">
     <AlertDialogContent>
@@ -178,6 +198,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Badge as UiBadge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
+import { Checkbox } from '~/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -195,7 +216,7 @@ import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
 import usePermissions from '~/compositions/usePermissions';
 import type { QueueInfo, Task } from '~/lib/api/types';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const apiClient = useApiClient();
@@ -211,6 +232,9 @@ const sortBy = ref('name');
 const sortDesc = ref(false);
 const taskToCancel = ref<TaskWithStatus>();
 const cancelingTaskId = ref<number>();
+const selectedTaskIds = ref(new Set<string>());
+const batchCancelOpen = ref(false);
+const batchCanceling = ref(false);
 
 interface TaskWithStatus extends Task {
   status: 'running' | 'pending' | 'waiting_on_deps';
@@ -301,10 +325,84 @@ const waitingTasks = computed<TaskWithStatus[]>(() => {
   }));
 });
 
-// Filtered tasks by status
-const filteredRunningTasks = computed(() => filterAndSortTasks(runningTasks.value));
-const filteredPendingTasks = computed(() => filterAndSortTasks(pendingTasks.value));
-const filteredWaitingTasks = computed(() => filterAndSortTasks(waitingTasks.value));
+// Queued tasks the server flags as stuck; running tasks never are
+const stuckTasks = computed<TaskWithStatus[]>(() =>
+  [...pendingTasks.value, ...waitingTasks.value].filter((task) => task.stuck_reason),
+);
+
+const stuckThresholdLabel = computed(() =>
+  queueInfo.value?.stuck_threshold ? prettyDuration(queueInfo.value.stuck_threshold * 1000) : '',
+);
+
+const tabs = computed(() => [
+  {
+    value: 'running',
+    label: t('admin.settings.queue.running'),
+    tasks: runningTasks.value,
+    filtered: filterAndSortTasks(runningTasks.value),
+    badgeVariant: 'default' as const,
+    empty: t('admin.settings.queue.no_running'),
+  },
+  {
+    value: 'pending',
+    label: t('admin.settings.queue.pending'),
+    tasks: pendingTasks.value,
+    filtered: filterAndSortTasks(pendingTasks.value),
+    badgeVariant: 'secondary' as const,
+    empty: t('admin.settings.queue.no_pending'),
+  },
+  {
+    value: 'waiting_on_deps',
+    label: t('admin.settings.queue.waiting'),
+    tasks: waitingTasks.value,
+    filtered: filterAndSortTasks(waitingTasks.value),
+    badgeVariant: 'outline' as const,
+    empty: t('admin.settings.queue.no_waiting'),
+  },
+  {
+    value: 'stuck',
+    label: t('admin.settings.queue.stuck'),
+    tasks: stuckTasks.value,
+    filtered: filterAndSortTasks(stuckTasks.value),
+    badgeVariant: 'destructive' as const,
+    empty: t('admin.settings.queue.no_stuck'),
+  },
+]);
+
+const activeTabTasks = computed(() => tabs.value.find((tab) => tab.value === activeTab.value)?.filtered ?? []);
+
+const allSelected = computed(
+  () =>
+    activeTabTasks.value.length > 0 && activeTabTasks.value.every((task) => selectedTaskIds.value.has(String(task.id))),
+);
+
+function toggleSelected(task: TaskWithStatus, selected: boolean) {
+  const next = new Set(selectedTaskIds.value);
+  if (selected) {
+    next.add(String(task.id));
+  } else {
+    next.delete(String(task.id));
+  }
+  selectedTaskIds.value = next;
+}
+
+function selectAll(selected: boolean) {
+  selectedTaskIds.value = selected ? new Set(activeTabTasks.value.map((task) => String(task.id))) : new Set();
+}
+
+// Selection applies to the visible tab only, so switching tabs or narrowing
+// the search drops tasks that are no longer shown.
+watch([activeTab, searchQuery], () => {
+  selectedTaskIds.value = new Set();
+});
+
+// Drop tasks that left the queue since the last refresh.
+watch(activeTabTasks, (visible) => {
+  const ids = new Set(visible.map((task) => String(task.id)));
+  if ([...selectedTaskIds.value].some((id) => !ids.has(id))) {
+    selectedTaskIds.value = new Set([...selectedTaskIds.value].filter((id) => ids.has(id)));
+  }
+});
 
 function getStatusLabel(status: string): string {
   switch (status) {
@@ -374,6 +472,44 @@ async function resumeQueue() {
 function onCancelDialogOpenChange(open: boolean) {
   if (!open && cancelingTaskId.value === undefined) {
     taskToCancel.value = undefined;
+  }
+}
+
+function onBatchCancelDialogOpenChange(open: boolean) {
+  if (!open && !batchCanceling.value) {
+    batchCancelOpen.value = false;
+  }
+}
+
+async function cancelSelectedTasks() {
+  const ids = [...selectedTaskIds.value];
+  if (ids.length === 0 || batchCanceling.value) return;
+
+  batchCanceling.value = true;
+  try {
+    const result = await apiClient.cancelQueueTasks(ids);
+    const failed = Object.keys(result.failed ?? {}).length;
+    selectedTaskIds.value = new Set(Object.keys(result.failed ?? {}));
+    batchCancelOpen.value = false;
+    await loadQueueInfo();
+    notifications.notify({
+      title: failed > 0 ? t('notify_title_error') : t('notify_title_success'),
+      text:
+        failed > 0
+          ? t('admin.settings.queue.notify_text_cancel_selected_partial', { canceled: result.canceled, failed })
+          : t('admin.settings.queue.notify_text_cancel_selected_success', { count: result.canceled }),
+      type: failed > 0 ? 'error' : 'success',
+      duration: failed > 0 ? 9000 : 6000,
+    });
+  } catch {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: t('unknown_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  } finally {
+    batchCanceling.value = false;
   }
 }
 

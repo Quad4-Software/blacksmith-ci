@@ -394,3 +394,19 @@ Core server configuration variables.
 - Name: `CROW_APPROVAL_GATE_SWEEP_INTERVAL`
 - Description: How often the approval gate timeout sweeper runs. Clamped to a minimum of 5s.
 - Default: `30s`
+
+---
+
+## QUEUE_STUCK_THRESHOLD
+
+- Name: `CROW_QUEUE_STUCK_THRESHOLD`
+- Description: How long a workflow may wait in the queue before it is listed as stuck in **Admin Settings > Queue**. `0` disables the age check; workflows blocked on failed dependencies are still listed and skipped. See [stuck workflows](/dev/configuration/server/#stuck-workflows).
+- Default: `1h`
+
+---
+
+## QUEUE_STUCK_NOTIFY
+
+- Name: `CROW_QUEUE_STUCK_NOTIFY`
+- Description: Email the user who triggered a pipeline once one of its workflows has waited longer than `CROW_QUEUE_STUCK_THRESHOLD`. Requires SMTP.
+- Default: `false`

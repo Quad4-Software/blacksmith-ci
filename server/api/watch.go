@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"time"
 	"unicode/utf8"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -27,6 +28,7 @@ import (
 
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/pipeline"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/server/services/watch"
 	"codefloe.com/crowci/crow/v6/server/store"
@@ -257,6 +259,48 @@ func ListUserWatches(ctx context.Context, _ *struct{}) (*WatchListOutput, error)
 		return nil, huma.Error500InternalServerError("failed to list watches", err)
 	}
 	return &WatchListOutput{Body: buildWatchOverview(_store, user, watches)}, nil
+}
+
+type StuckPipelineListOutput struct {
+	Body []model.StuckPipeline
+}
+
+// ListUserStuckPipelines lists the pipelines the current user triggered that
+// have a workflow stuck in the queue, for the header bell.
+func ListUserStuckPipelines(ctx context.Context, _ *struct{}) (*StuckPipelineListOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	user := session.User(c)
+
+	stuck := pipeline.FindStuckPipelines(c, _store, server.Config.Services.Queue, server.Config.Pipeline.QueueStuckThreshold, time.Now())
+	result := make([]model.StuckPipeline, 0)
+	repos := make(map[int64]*model.Repo)
+	for _, entry := range stuck {
+		p := entry.Pipeline
+		if !pipeline.TriggeredBy(p, user) {
+			continue
+		}
+		repo, ok := repos[p.RepoID]
+		if !ok {
+			var err error
+			if repo, err = _store.GetRepo(p.RepoID); err != nil {
+				repo = nil
+			}
+			repos[p.RepoID] = repo
+		}
+		// a matching login on another forge must not reveal the repository
+		if !pipeline.MayReceiveStuckNotice(_store, user, repo) {
+			continue
+		}
+		result = append(result, model.StuckPipeline{
+			RepoID:         repo.ID,
+			RepoFullName:   repo.FullName,
+			PipelineNumber: p.Number,
+			Created:        p.Created,
+			Workflows:      entry.Workflows,
+		})
+	}
+	return &StuckPipelineListOutput{Body: result}, nil
 }
 
 func MarkUserWatchRead(ctx context.Context, input *WatchIDInput) (*WatchOutput, error) {
