@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-full w-full flex-col items-center justify-center gap-6 p-4">
-    <img :src="logoSrc" alt="Crow CI" class="h-16 w-16 opacity-40" />
+    <img :src="logoSrc" alt="Blacksmith CI" class="h-16 w-16 opacity-40" />
     <div class="text-center">
       <h1 class="text-4xl font-bold text-foreground">{{ $t('not_found.heading') }}</h1>
       <p class="mt-2 text-muted-foreground">{{ $t('not_found.not_found') }}</p>

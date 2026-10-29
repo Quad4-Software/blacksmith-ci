@@ -11,9 +11,9 @@
  */
 
 import type { ThemeDefinition, ThemeOption } from './types';
+import { blacksmithTheme } from './blacksmith';
 import { catppuccinTheme } from './catppuccin';
 import { claudeTheme } from './claude';
-import { crowCiTheme } from './crow-ci';
 import { mergeCustomThemes } from './custom';
 import { doom64Theme } from './doom-64';
 import { modernMinimalTheme } from './modern-minimal';
@@ -23,11 +23,11 @@ import { t3ChatTheme } from './t3-chat';
 import { vercelTheme } from './vercel';
 
 /** Default theme ID when no preference is stored */
-export const DEFAULT_THEME_ID = 'crow-ci';
+export const DEFAULT_THEME_ID = 'blacksmith';
 
-/** Themes shipped with Crow */
+/** Themes shipped with Blacksmith */
 const BUNDLED_THEMES: ThemeDefinition[] = [
-  crowCiTheme,
+  blacksmithTheme,
   catppuccinTheme,
   claudeTheme,
   doom64Theme,

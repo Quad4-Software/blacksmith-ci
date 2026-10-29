@@ -398,7 +398,7 @@ function createStructuredMetadata() {
     })),
     api_metadata: metadata.value,
     generated_at: new Date().toISOString(),
-    generated_by: 'crow-ci-web-ui',
+    generated_by: 'blacksmith-ci-web-ui',
   };
 
   return structuredData;

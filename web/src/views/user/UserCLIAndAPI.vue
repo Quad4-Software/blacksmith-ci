@@ -62,7 +62,7 @@ const usageWithCurl = computed(() => {
 
 const usageWithCli = `# crow-cli setup --server ${address}`;
 
-const cliDownload = 'https://codeberg.org/crowci/crow/releases';
+const cliDownload = 'https://github.com/Quad4-Software/blacksmith-ci/releases';
 
 const resetToken = async () => {
   token.value = await apiClient.resetToken();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { crowCiTheme } from './crow-ci';
+import { blacksmithTheme } from './blacksmith';
 import { parseThemeOverrides, themesToCss } from './overrides';
 
 const anyColor = () => true;
@@ -86,10 +86,10 @@ describe('parseThemeOverrides', () => {
 
 describe('themesToCss', () => {
   it('round-trips through parseThemeOverrides', () => {
-    const result = parseThemeOverrides(themesToCss(crowCiTheme, crowCiTheme), anyColor);
+    const result = parseThemeOverrides(themesToCss(blacksmithTheme, blacksmithTheme), anyColor);
 
-    expect(result.overrides.light).toEqual(crowCiTheme.light);
-    expect(result.overrides.dark).toEqual(crowCiTheme.dark);
+    expect(result.overrides.light).toEqual(blacksmithTheme.light);
+    expect(result.overrides.dark).toEqual(blacksmithTheme.dark);
     expect(result.ignoredProperties).toEqual([]);
   });
 });

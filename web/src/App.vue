@@ -53,7 +53,7 @@
                   :to="{ name: 'home' }"
                   class="flex h-8 w-8 items-center justify-center hover:opacity-80 transition-opacity"
                 >
-                  <img :src="logoSrc" alt="Crow CI" class="h-7 w-7" />
+                  <img :src="logoSrc" alt="Blacksmith CI" class="h-7 w-7" />
                 </router-link>
               </div>
 

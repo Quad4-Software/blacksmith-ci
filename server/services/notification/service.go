@@ -77,7 +77,7 @@ func (s *service) TestSMTP(_ context.Context) error {
 	if !s.smtpCfg.IsConfigured() {
 		return fmt.Errorf("SMTP is not configured")
 	}
-	return sendEmail(s.smtpCfg, []string{s.smtpCfg.From}, "Crow CI - SMTP Test", "This is a test email from Crow CI. Your SMTP configuration is working correctly.")
+	return sendEmail(s.smtpCfg, []string{s.smtpCfg.From}, "Blacksmith CI - SMTP Test", "This is a test email from Blacksmith CI. Your SMTP configuration is working correctly.")
 }
 
 func (s *service) SendPipelineEmail(_ context.Context, to string, repo *model.Repo, pipeline *model.Pipeline, statusLabel, unsubscribeURL string) error {
@@ -87,7 +87,7 @@ func (s *service) SendPipelineEmail(_ context.Context, to string, repo *model.Re
 
 	refLabel := pipelineRefLabel(pipeline)
 
-	subject := fmt.Sprintf("[Crow CI] %s: build #%d on %s (%s)",
+	subject := fmt.Sprintf("[Blacksmith CI] %s: build #%d on %s (%s)",
 		repo.FullName,
 		pipeline.Number,
 		refLabel,
@@ -113,7 +113,7 @@ func (s *service) SendStuckPipelineEmail(_ context.Context, to string, repo *mod
 	}
 
 	refLabel := pipelineRefLabel(pipeline)
-	subject := fmt.Sprintf("[Crow CI] %s: build #%d on %s is waiting for an agent",
+	subject := fmt.Sprintf("[Blacksmith CI] %s: build #%d on %s is waiting for an agent",
 		repo.FullName,
 		pipeline.Number,
 		refLabel,

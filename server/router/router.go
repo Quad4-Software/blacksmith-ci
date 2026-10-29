@@ -92,7 +92,7 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 	}
 
 	apiBase := base.Group("/api/v1")
-	humaAPI := newHumaAPI(e, apiBase, "Crow CI API", version.String())
+	humaAPI := newHumaAPI(e, apiBase, "Blacksmith CI API", version.String())
 	apiRoutes(base, apiBase, humaAPI)
 
 	return e

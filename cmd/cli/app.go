@@ -34,7 +34,7 @@ import (
 func newApp() *cli.Command {
 	app := &cli.Command{}
 	app.Name = "crow"
-	app.Description = "Crow CI command line utility"
+	app.Description = "Blacksmith CI command line utility"
 	app.Version = version.String()
 	app.Usage = "command line utility"
 	app.Flags = common.GlobalFlags

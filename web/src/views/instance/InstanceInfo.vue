@@ -9,7 +9,7 @@
         <i18n-t keypath="update_crow" tag="span" :arguments="[version.latest?.replace(/^v/, '')]">
           <a
             v-if="!version.usesDev"
-            :href="`https://codeberg.org/crowci/crow/releases/tag/${version.latest}`"
+            :href="`https://github.com/Quad4-Software/blacksmith-ci/releases/tag/${version.latest}`"
             target="_blank"
             rel="noopener noreferrer"
           >

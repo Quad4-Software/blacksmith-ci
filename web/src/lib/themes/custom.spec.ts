@@ -4,7 +4,7 @@ import process from 'node:process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { claudeTheme } from './claude';
-import { crowCiTheme } from './crow-ci';
+import { blacksmithTheme } from './blacksmith';
 import { CSS_VAR_MAP } from './css-vars';
 import { mergeCustomThemes } from './custom';
 
@@ -12,7 +12,7 @@ const THEME_VARS_BLOCK_RE = /themeVars = map\[string\]bool\{([\s\S]*?)\n\t\}/;
 const GO_MAP_KEY_RE = /"([a-z0-9-]+)": true/g;
 
 const anyColor = () => true;
-const bundled = [crowCiTheme, claudeTheme];
+const bundled = [blacksmithTheme, claudeTheme];
 
 describe('mergeCustomThemes', () => {
   afterEach(() => {
@@ -20,30 +20,30 @@ describe('mergeCustomThemes', () => {
   });
 
   it('returns the bundled themes unchanged without custom themes', () => {
-    expect(mergeCustomThemes(bundled, [], 'crow-ci', anyColor)).toEqual(bundled);
+    expect(mergeCustomThemes(bundled, [], 'blacksmith', anyColor)).toEqual(bundled);
   });
 
   it('appends a new theme on top of the default theme', () => {
     const themes = mergeCustomThemes(
       bundled,
       [{ id: 'acme', name: 'ACME', light: { primary: '#7c3aed', 'sidebar-primary': '#6d28d9' } }],
-      'crow-ci',
+      'blacksmith',
       anyColor,
     );
 
-    expect(themes.map((theme) => theme.id)).toEqual(['crow-ci', 'claude', 'acme']);
+    expect(themes.map((theme) => theme.id)).toEqual(['blacksmith', 'claude', 'acme']);
     const acme = themes[2];
     expect(acme.name).toBe('ACME');
     expect(acme.custom).toBe(true);
-    expect(acme.light).toEqual({ ...crowCiTheme.light, primary: '#7c3aed', sidebarPrimary: '#6d28d9' });
-    expect(acme.dark).toEqual(crowCiTheme.dark);
+    expect(acme.light).toEqual({ ...blacksmithTheme.light, primary: '#7c3aed', sidebarPrimary: '#6d28d9' });
+    expect(acme.dark).toEqual(blacksmithTheme.dark);
   });
 
   it('inherits from the given base theme', () => {
     const [, , acme] = mergeCustomThemes(
       bundled,
       [{ id: 'acme', base: 'claude', dark: { primary: '#a78bfa' } }],
-      'crow-ci',
+      'blacksmith',
       anyColor,
     );
 
@@ -53,12 +53,12 @@ describe('mergeCustomThemes', () => {
   });
 
   it('replaces a bundled theme in place and inherits from it', () => {
-    const themes = mergeCustomThemes(bundled, [{ id: 'crow-ci', light: { primary: '#7c3aed' } }], 'crow-ci', anyColor);
+    const themes = mergeCustomThemes(bundled, [{ id: 'blacksmith', light: { primary: '#7c3aed' } }], 'blacksmith', anyColor);
 
-    expect(themes.map((theme) => theme.id)).toEqual(['crow-ci', 'claude']);
-    expect(themes[0].name).toBe(crowCiTheme.name);
+    expect(themes.map((theme) => theme.id)).toEqual(['blacksmith', 'claude']);
+    expect(themes[0].name).toBe(blacksmithTheme.name);
     expect(themes[0].custom).toBe(true);
-    expect(themes[0].light).toEqual({ ...crowCiTheme.light, primary: '#7c3aed' });
+    expect(themes[0].light).toEqual({ ...blacksmithTheme.light, primary: '#7c3aed' });
   });
 
   it('falls back to the default theme for an unknown base', () => {
@@ -67,11 +67,11 @@ describe('mergeCustomThemes', () => {
     const [, , acme] = mergeCustomThemes(
       bundled,
       [{ id: 'acme', base: 'missing', light: { primary: 'red' } }],
-      'crow-ci',
+      'blacksmith',
       anyColor,
     );
 
-    expect(acme.dark).toEqual(crowCiTheme.dark);
+    expect(acme.dark).toEqual(blacksmithTheme.dark);
     expect(warn).toHaveBeenCalledOnce();
   });
 
@@ -81,11 +81,11 @@ describe('mergeCustomThemes', () => {
     const [, , acme] = mergeCustomThemes(
       bundled,
       [{ id: 'acme', light: { 'font-sans': 'Inter', radius: '1rem', primary: 'nope', ring: '#123456' } }],
-      'crow-ci',
+      'blacksmith',
       (value) => value.startsWith('#'),
     );
 
-    expect(acme.light).toEqual({ ...crowCiTheme.light, ring: '#123456' });
+    expect(acme.light).toEqual({ ...blacksmithTheme.light, ring: '#123456' });
     expect(warn).toHaveBeenCalledOnce();
   });
 });

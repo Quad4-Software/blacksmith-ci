@@ -195,7 +195,7 @@
   },
   "repo": {
     "watch": {
-      "in_app": "Show failures in Crow",
+      "in_app": "Show failures in Blacksmith",
       "in_app_desc": "Failing pipelines appear in the header bell and the watching overview.",
       "email": "Send emails",
       "email_desc": "Get an email for the selected events.",
@@ -328,7 +328,7 @@
           "pipelines": "Pipeline runs",
           "pipelines_desc": "Copy all pipeline history with logs (URLs will be adapted to the new forge)",
           "delete_source": "Delete source repository after import",
-          "delete_source_desc": "Remove the source repository from Crow after importing"
+          "delete_source_desc": "Remove the source repository from Blacksmith after importing"
         },
         "import_button": "Import selected",
         "skip": "Skip import",
@@ -349,7 +349,7 @@
       },
       "internal": {
         "internal": "Internal",
-        "desc": "Only authenticated users of this Crow CI instance can see this project."
+        "desc": "Only authenticated users of this Blacksmith CI instance can see this project."
       }
     },
     "settings": {
@@ -998,7 +998,7 @@
         "autoscalers": "Autoscalers",
         "desc": "Autoscalers dynamically provision agents on demand.",
         "none": "There are no autoscalers yet.",
-        "none_learn_more": "Learn more about autoscaling in the Crow documentation.",
+        "none_learn_more": "Learn more about autoscaling in the Blacksmith documentation.",
         "id": "ID",
         "add": "Add autoscaler",
         "show": "Show autoscalers",
@@ -1388,8 +1388,8 @@
         "unlink_failed": "Could not unlink single sign-on",
         "unlink_needs_forge": "Link a forge account with forge sign-in enabled before unlinking single sign-on, or you could no longer sign in.",
         "link_failed": "Could not link single sign-on. Try again or contact your administrator.",
-        "link_access_denied": "Your single sign-on account is not in a group that may use Crow, so it cannot be linked.",
-        "identity_taken": "This single sign-on account is already linked to another Crow user.",
+        "link_access_denied": "Your single sign-on account is not in a group that may use Blacksmith, so it cannot be linked.",
+        "identity_taken": "This single sign-on account is already linked to another Blacksmith user.",
         "identity_already_linked": "Your account already has a single sign-on identity linked. Unlink it first.",
         "forge_sign_in_required": "Sign out and sign in with your forge once before linking single sign-on."
       },
@@ -1679,8 +1679,8 @@
   "clear_filters": "Clear filters",
   "scope_type": "Scope",
   "info": "Info",
-  "running_version": "You are running Crow CI {0}",
-  "update_crow": "(A newer version of Crow CI is available: {0})",
+  "running_version": "You are running Blacksmith CI {0}",
+  "update_crow": "(A newer version of Blacksmith CI is available: {0})",
   "settings": "Admin Settings",
   "oauth_error": "Error while authenticating against OAuth provider",
   "stale_token_error": "Your authentication token has expired and could not be refreshed automatically.",
@@ -1688,7 +1688,7 @@
   "registration_closed": "The registration is closed",
   "login_taken": "This username is already used by an account from another forge. Sign in with that forge and link this account from your user settings.",
   "access_denied": "Missing permissions to access this instance",
-  "org_access_denied": "You are not a member of the organization which allows logging into Crow CI (the organization is set via env var `CROW_ORGS').",
+  "org_access_denied": "You are not a member of the organization which allows logging into Blacksmith CI (the organization is set via env var `CROW_ORGS').",
   "invalid_state": "The OAuth state is invalid",
   "require_approval": {
     "desc": "These options help to control the approval process for pipeline execution. By default, 'Pull request from forked repository' is set to prevent potentially malicious pipelines from forked repos to expose secrets or execute harmful steps.",
@@ -1700,14 +1700,14 @@
     "all_events": "All events from forge"
   },
   "no_search_results": "No results found",
-  "welcome_to_crow": "Welcome to Crow CI",
+  "welcome_to_crow": "Welcome to Blacksmith CI",
   "login_oauth_message": "Sign in with OAuth",
   "login_sso_message": "Sign in with your organization account",
   "link_forge_title": "Link Forge Account",
   "oidc_error": "Error while signing in through single sign-on",
-  "oidc_access_denied": "Your single sign-on account is not in a group that may use Crow",
+  "oidc_access_denied": "Your single sign-on account is not in a group that may use Blacksmith",
   "idp_login_taken": "An account with this username already exists. Sign in with your forge and link your identity provider account from your user settings.",
-  "idp_invalid_username": "Your identity provider username cannot be used as a Crow login. Ask your administrator to configure a different username attribute.",
+  "idp_invalid_username": "Your identity provider username cannot be used as a Blacksmith login. Ask your administrator to configure a different username attribute.",
   "idp_missing_username": "Your identity provider account sent no username. Ask your administrator to configure the username attribute.",
   "forge_login_disabled": "Forge sign-in is disabled on this instance. Sign in with your organization account instead.",
   "login_or": "or",
@@ -1717,12 +1717,12 @@
     "password": "Password",
     "sign_in": "Sign in with {name}",
     "invalid_credentials": "Invalid username or password.",
-    "ldap_access_denied": "Your directory account is not allowed to sign in to Crow.",
+    "ldap_access_denied": "Your directory account is not allowed to sign in to Blacksmith.",
     "too_many_attempts": "Too many failed attempts. Try again in {minutes} minute. | Too many failed attempts. Try again in {minutes} minutes.",
     "ldap_unavailable": "The directory is not reachable. Try again later."
   },
   "sign_in_with": "Sign in with {name}",
-  "link_forge_required_message": "Link a forge account to start using Crow. Crow needs it to read your repositories and report pipeline status.",
+  "link_forge_required_message": "Link a forge account to start using Blacksmith. Blacksmith needs it to read your repositories and report pipeline status.",
   "link_forge_message": "Sign in to link this forge to your account",
   "disabled": "Disabled",
   "proclog": {

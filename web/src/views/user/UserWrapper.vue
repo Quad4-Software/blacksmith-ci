@@ -35,8 +35,8 @@
           v-if="version?.needsUpdate && version?.latest"
           :href="
             version.usesDev
-              ? 'https://codeberg.org/crowci/crow/commits/branch/main'
-              : `https://codeberg.org/crowci/crow/releases/tag/${version.latest}`
+              ? 'https://github.com/Quad4-Software/blacksmith-ci/commits/main'
+              : `https://github.com/Quad4-Software/blacksmith-ci/releases/tag/${version.latest}`
           "
           target="_blank"
           rel="noopener noreferrer"
@@ -109,10 +109,10 @@ const isSemverVersion = computed(() => {
 // Generate appropriate URL based on version type
 const versionUrl = computed(() => {
   if (isDevVersion.value) {
-    return 'https://codeberg.org/crowci/crow/commits/branch/main';
+    return 'https://github.com/Quad4-Software/blacksmith-ci/commits/main';
   } else if (isSemverVersion.value) {
     const cleanVersion = currentVersion.value.startsWith('v') ? currentVersion.value : `v${currentVersion.value}`;
-    return `https://codeberg.org/crowci/crow/releases/tag/${cleanVersion}`;
+    return `https://github.com/Quad4-Software/blacksmith-ci/releases/tag/${cleanVersion}`;
   }
   return '';
 });

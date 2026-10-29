@@ -1,0 +1,192 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: quad4-software
+  IMAGE_BASE: blacksmith-ci
+
+jobs:
+
+  build:
+    name: go build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: setup go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: build
+        run: CGO_ENABLED=0 go build ./cmd/agent ./cmd/cli
+
+  server:
+    name: image / server
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: setup go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: setup bun
+        uses: oven-sh/setup-bun@4bc047a7420a6a83ec633ea33a75198465341a7e # v2.1.2
+        with:
+          no-cache: true
+
+      - name: build ui
+        run: |
+          cd web
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: build server binary
+        run: |
+          VER="${GITHUB_REF_NAME}"
+          SHA="${GITHUB_SHA::10}"
+          DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          if [ "${GITHUB_REF_NAME}" = "master" ]; then VER="dev-${SHA}"; fi
+          mkdir -p dist/server/linux_amd64
+          CGO_ENABLED=1 go build \
+            -tags 'netgo osusergo grpcnotrace containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper' \
+            -ldflags "-s -w -extldflags '-static' -X codefloe.com/crowci/crow/v6/version.Version=${VER} -X codefloe.com/crowci/crow/v6/version.BuildDate=${DATE}" \
+            -o dist/server/linux_amd64/crow-server ./cmd/server
+
+      - name: setup buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: login to ghcr
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: image tags
+        id: tags
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          tags="${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_BASE }}-server:sha-${SHA::7}"
+          if [ "${REF_NAME}" = "master" ]; then
+            tags="${tags},${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_BASE }}-server:latest"
+          fi
+          case "${REF_NAME}" in
+            v*) tags="${tags},${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_BASE }}-server:${REF_NAME#v},${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_BASE }}-server:latest" ;;
+          esac
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      - name: build (and push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: images/Containerfile.server.alpine.multiarch.rootless
+          platforms: linux/amd64
+          outputs: type=image,"name=${{ steps.tags.outputs.tags }}",push=${{ github.event_name != 'pull_request' }},compression=zstd,compression-level=19,force-compression=true
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+          provenance: false
+
+  images:
+    name: image / ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: agent
+            dockerfile: images/Containerfile.agent.alpine.multiarch
+          - name: cli
+            dockerfile: images/Containerfile.cli.alpine.multiarch.rootless
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: setup buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: login to ghcr
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: image tags
+        id: tags
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          NAME: ${{ env.IMAGE_BASE }}-${{ matrix.name }}
+        run: |
+          tags="${{ env.REGISTRY }}/${{ env.OWNER }}/${NAME}:sha-${SHA::7}"
+          if [ "${REF_NAME}" = "master" ]; then
+            tags="${tags},${{ env.REGISTRY }}/${{ env.OWNER }}/${NAME}:latest"
+          fi
+          case "${REF_NAME}" in
+            v*) tags="${tags},${{ env.REGISTRY }}/${{ env.OWNER }}/${NAME}:${REF_NAME#v},${{ env.REGISTRY }}/${{ env.OWNER }}/${NAME}:latest" ;;
+          esac
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      - name: build (and push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          outputs: type=image,"name=${{ steps.tags.outputs.tags }}",push=${{ github.event_name != 'pull_request' }},compression=zstd,compression-level=19,force-compression=true
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+          provenance: false
+
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: run zizmor
+        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          persona: auditor

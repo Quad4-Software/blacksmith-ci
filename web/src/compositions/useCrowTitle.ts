@@ -15,7 +15,7 @@ export function useCrowTitle(elements: Ref<string[]>) {
   watch(
     elements,
     (value) => {
-      title.value = `${value.join(' · ')} · Crow`;
+      title.value = `${value.join(' · ')} · Blacksmith`;
     },
     { immediate: true },
   );

@@ -372,11 +372,11 @@
 
       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
       <a
-        href="https://codefloe.com/crowci/crow"
+        href="https://github.com/Quad4-Software/blacksmith-ci"
         target="_blank"
         class="block px-2 py-1.5 text-xs text-muted-foreground space-y-0.5 hover:underline group-data-[collapsible=icon]:hidden"
       >
-        <div>Crow {{ versionInfo?.current || config.version }}</div>
+        <div>Blacksmith {{ versionInfo?.current || config.version }}</div>
         <div v-if="config.buildDate" class="text-[0.65rem] opacity-75">
           {{ formattedBuildDate }}
         </div>

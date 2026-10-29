@@ -11,6 +11,7 @@ const {
   system: systemTheme,
 } = useColorMode({
   storageKey: 'crow:theme',
+  initialValue: 'dark',
 });
 
 // Migration: check for old single theme preference and migrate to new split keys
@@ -108,12 +109,12 @@ function updateTheme() {
     document.documentElement.classList.remove('light');
     document.documentElement.classList.add('dark');
     document.documentElement.setAttribute('data-theme', 'dark');
-    document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#2A2E3A');
+    document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#0a0a0b');
   } else {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.add('light');
     document.documentElement.setAttribute('data-theme', 'light');
-    document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#369943');
+    document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#fafafa');
   }
 
   // Apply theme-specific CSS variables, with the user's overrides on top

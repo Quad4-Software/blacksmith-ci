@@ -191,7 +191,7 @@ func GetActiveRepos(ctx context.Context, _ *GetActiveReposInput) (*GetActiveRepo
 
 type GetAvailableReposInput struct {
 	ForgeID       int64 `query:"forge_id"       doc:"only return repos from this forge id (0 = all linked forges)"`
-	OnlyUnenabled bool  `query:"only_unenabled" doc:"omit repos already enabled in Crow"`
+	OnlyUnenabled bool  `query:"only_unenabled" doc:"omit repos already enabled in Blacksmith"`
 }
 
 type GetAvailableReposOutput struct {

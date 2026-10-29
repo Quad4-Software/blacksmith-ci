@@ -1,8 +1,8 @@
 /**
- * Theme type definitions for Crow CI
+ * Theme type definitions for Blacksmith CI
  *
  * The theme system uses shadcn/ui CSS variables for UI components.
- * Custom Crow CI variables (--wp-*) for pipeline states, code blocks, etc.
+ * Custom variables (--wp-*) for pipeline states, code blocks, etc.
  * are kept unchanged across all themes.
  */
 

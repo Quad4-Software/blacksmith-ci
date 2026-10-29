@@ -94,7 +94,7 @@
           </div>
           <div class="space-y-2">
             <Label for="bucket-prefix">{{ $t('caches.bucket.prefix') }}</Label>
-            <Input id="bucket-prefix" v-model="bucketForm.prefix" placeholder="crow-cache" />
+            <Input id="bucket-prefix" v-model="bucketForm.prefix" placeholder="blacksmith-cache" />
           </div>
           <div class="space-y-2">
             <Label for="bucket-access-key">{{ $t('caches.bucket.access_key') }}</Label>

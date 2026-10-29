@@ -29,8 +29,8 @@ vi.mock('~/compositions/useTheme', () => ({
   useTheme: () => ({
     theme: ref('light'),
     storeTheme: ref('auto'),
-    themeName: ref('crow-ci'),
-    currentTheme: ref({ id: 'crow-ci', name: 'Crow CI', light: {}, dark: {} }),
+    themeName: ref('blacksmith'),
+    currentTheme: ref({ id: 'blacksmith', name: 'Blacksmith CI', light: {}, dark: {} }),
     availableThemes: ref([]),
   }),
 }));
