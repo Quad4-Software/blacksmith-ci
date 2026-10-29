@@ -57,7 +57,7 @@ jobs:
           cache: false
 
       - name: setup bun
-        uses: oven-sh/setup-bun@4bc047a7420a6a83ec633ea33a75198465341a7e # v2.1.2
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2.1.2
         with:
           no-cache: true
 
