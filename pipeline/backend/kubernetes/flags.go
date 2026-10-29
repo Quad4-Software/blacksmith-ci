@@ -96,6 +96,12 @@ var Flags = []cli.Flag{
 		Name:    "backend-k8s-secctx-nonroot",
 		Usage:   "`run as non root` Kubernetes security context option",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_K8S_SECCTX_PROFILE"),
+		Name:    "backend-k8s-secctx-profile",
+		Usage:   "container security context defaults for non-privileged steps: `restricted` drops all capabilities and disallows privilege escalation, `baseline` keeps the container runtime defaults",
+		Value:   "restricted",
+	},
 	&cli.StringSliceFlag{
 		Sources: cli.EnvVars("WOODPECKER_BACKEND_K8S_PULL_SECRET_NAMES", "CROW_BACKEND_K8S_PULL_SECRET_NAMES"),
 		Name:    "backend-k8s-pod-image-pull-secret-names",

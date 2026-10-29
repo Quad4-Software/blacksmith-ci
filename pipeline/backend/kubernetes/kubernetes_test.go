@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli/v3"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -111,6 +112,36 @@ func TestGettingConfig(t *testing.T) {
 	assert.Len(t, engine.config.PodAnnotations, 1)
 	assert.Len(t, engine.config.ImagePullSecretNames, 1)
 	assert.False(t, engine.config.SecurityContext.RunAsNonRoot)
+}
+
+func TestConfigSecurityContextProfile(t *testing.T) {
+	load := func(t *testing.T, args ...string) (*config, error) {
+		t.Helper()
+		var (
+			conf *config
+			err  error
+		)
+		cmd := &cli.Command{
+			Flags: Flags,
+			Action: func(c context.Context, cmd *cli.Command) error {
+				conf, err = configFromCliContext(context.WithValue(c, types.CliCommand, cmd))
+				return nil
+			},
+		}
+		require.NoError(t, cmd.Run(t.Context(), append([]string{"test"}, args...)))
+		return conf, err
+	}
+
+	conf, err := load(t)
+	require.NoError(t, err)
+	assert.Equal(t, SecurityContextProfileRestricted, conf.SecurityContext.Profile)
+
+	conf, err = load(t, "--backend-k8s-secctx-profile", "baseline")
+	require.NoError(t, err)
+	assert.Equal(t, SecurityContextProfileBaseline, conf.SecurityContext.Profile)
+
+	_, err = load(t, "--backend-k8s-secctx-profile", "privileged")
+	assert.ErrorContains(t, err, "invalid kubernetes security context profile 'privileged'")
 }
 
 func TestDestroyWorkflowCleansSecrets(t *testing.T) {

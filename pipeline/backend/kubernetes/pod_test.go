@@ -1154,6 +1154,51 @@ func TestRestrictedDefaultsWithPerStepCapabilitiesDropOverride(t *testing.T) {
 	}
 }
 
+func TestBaselineProfileKeepsRuntimeDefaults(t *testing.T) {
+	pod, err := mkPod(&types.Step{
+		Name:  "pacman",
+		Image: "archlinux:base",
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+	}, &config{
+		Namespace:       "crow",
+		SecurityContext: SecurityContextConfig{Profile: SecurityContextProfileBaseline},
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
+	assert.NoError(t, err)
+
+	assert.Nil(t, pod.Spec.Containers[0].SecurityContext, "baseline profile must not drop capabilities or disallow privilege escalation")
+
+	podSC := pod.Spec.SecurityContext
+	if assert.NotNil(t, podSC) && assert.NotNil(t, podSC.SeccompProfile) {
+		assert.Equal(t, v1.SeccompProfileTypeRuntimeDefault, podSC.SeccompProfile.Type, "baseline profile keeps the RuntimeDefault seccomp profile")
+	}
+}
+
+func TestBaselineProfileWithPerStepCapabilities(t *testing.T) {
+	pod, err := mkPod(&types.Step{
+		Name:  "drop-raw",
+		Image: "alpine:3.20",
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+	}, &config{
+		Namespace:       "crow",
+		SecurityContext: SecurityContextConfig{Profile: SecurityContextProfileBaseline},
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+		SecurityContext: &SecurityContext{
+			Capabilities: &Capabilities{
+				Add:  []string{"SYS_PTRACE"},
+				Drop: []string{"NET_RAW"},
+			},
+		},
+	}, taskUUID)
+	assert.NoError(t, err)
+
+	sc := pod.Spec.Containers[0].SecurityContext
+	if assert.NotNil(t, sc) && assert.NotNil(t, sc.Capabilities) {
+		assert.Nil(t, sc.AllowPrivilegeEscalation)
+		assert.Equal(t, []v1.Capability{"SYS_PTRACE"}, sc.Capabilities.Add)
+		assert.Equal(t, []v1.Capability{"NET_RAW"}, sc.Capabilities.Drop)
+	}
+}
+
 func TestRestrictedDefaultsRespectExistingSeccompProfile(t *testing.T) {
 	pod, err := mkPod(&types.Step{
 		Name:  "custom-seccomp",

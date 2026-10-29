@@ -96,9 +96,22 @@ func (e *kube) workflowNamespace(conf *types.Config) string {
 	return e.config.Namespace
 }
 
+// Security context profiles, named after the Pod Security Standards they target.
+const (
+	// SecurityContextProfileRestricted drops all capabilities and disallows
+	// privilege escalation for non-privileged steps.
+	SecurityContextProfileRestricted = "restricted"
+	// SecurityContextProfileBaseline leaves capabilities and privilege escalation
+	// to the container runtime defaults.
+	SecurityContextProfileBaseline = "baseline"
+)
+
 type SecurityContextConfig struct {
 	RunAsNonRoot bool
 	FSGroup      *int64
+	// Profile is SecurityContextProfileRestricted or SecurityContextProfileBaseline.
+	// An empty value behaves like SecurityContextProfileRestricted.
+	Profile string
 }
 
 func newDefaultDeleteOptions() meta_v1.DeleteOptions {
@@ -131,10 +144,17 @@ func configFromCliContext(ctx context.Context) (*config, error) {
 				SecurityContext: SecurityContextConfig{
 					RunAsNonRoot: c.Bool("backend-k8s-secctx-nonroot"), // cspell:words secctx nonroot
 					FSGroup:      newInt64(defaultFSGroup),
+					Profile:      c.String("backend-k8s-secctx-profile"),
 				},
 				NativeSecretsAllowFromStep:      c.Bool("backend-k8s-allow-native-secrets"),
 				ServiceAccountName:              c.String("backend-k8s-service-account-name"),
 				ServiceAccountNameAllowFromStep: c.Bool("backend-k8s-service-account-name-allow-from-step"),
+			}
+			switch config.SecurityContext.Profile {
+			case SecurityContextProfileRestricted, SecurityContextProfileBaseline:
+			default:
+				return nil, fmt.Errorf("invalid kubernetes security context profile '%s', must be '%s' or '%s'",
+					config.SecurityContext.Profile, SecurityContextProfileRestricted, SecurityContextProfileBaseline)
 			}
 			// Unmarshal label and annotation settings here to ensure they're valid on startup
 			if labels := c.String("backend-k8s-pod-labels"); labels != "" {

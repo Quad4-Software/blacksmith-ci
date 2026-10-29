@@ -71,7 +71,7 @@ func mkPod(step *types.Step, config *config, podName, goos string, options Backe
 		return nil, err
 	}
 
-	container, err := podContainer(step, podName, goos, options, nsp, tmpfs)
+	container, err := podContainer(step, podName, goos, options, config.SecurityContext.Profile, nsp, tmpfs)
 	if err != nil {
 		return nil, err
 	}
@@ -266,14 +266,14 @@ func podSpec(step *types.Step, config *config, options BackendOptions, nsp nativ
 	return spec, nil
 }
 
-func podContainer(step *types.Step, podName, goos string, options BackendOptions, nsp nativeSecretsProcessor, tmpfs []parsedTmpfs) (v1.Container, error) {
+func podContainer(step *types.Step, podName, goos string, options BackendOptions, secCtxProfile string, nsp nativeSecretsProcessor, tmpfs []parsedTmpfs) (v1.Container, error) {
 	var err error
 	container := v1.Container{
 		Name:            podName,
 		Image:           step.Image,
 		WorkingDir:      step.WorkingDir,
 		Ports:           containerPorts(step.Ports),
-		SecurityContext: containerSecurityContext(options.SecurityContext, step.Privileged),
+		SecurityContext: containerSecurityContext(options.SecurityContext, secCtxProfile, step.Privileged),
 	}
 
 	if step.Pull {
@@ -639,7 +639,7 @@ func apparmorProfile(scp *SecProfile) *v1.AppArmorProfile {
 	return apparmorProfile
 }
 
-func containerSecurityContext(sc *SecurityContext, stepPrivileged bool) *v1.SecurityContext {
+func containerSecurityContext(sc *SecurityContext, profile string, stepPrivileged bool) *v1.SecurityContext {
 	if stepPrivileged {
 		// 1st condition: if security context privileged is set explicitly
 		// 2nd condition: if security context privileged is not set explicitly, but step is privileged
@@ -656,11 +656,15 @@ func containerSecurityContext(sc *SecurityContext, stepPrivileged bool) *v1.Secu
 		return nil
 	}
 
-	// Non-privileged step: emit container securityContext that satisfies the
-	// PodSecurity `restricted` profile. Per-step overrides via backend_options
-	// still win.
-	drop := []v1.Capability{"ALL"}
-	var add []v1.Capability
+	// Non-privileged step: with the `restricted` profile, emit a container
+	// securityContext that satisfies the PodSecurity `restricted` profile. The
+	// `baseline` profile leaves capabilities and privilege escalation to the
+	// container runtime. Per-step overrides via backend_options still win.
+	restricted := profile != SecurityContextProfileBaseline
+	var drop, add []v1.Capability
+	if restricted {
+		drop = []v1.Capability{"ALL"}
+	}
 	if sc != nil && sc.Capabilities != nil {
 		if sc.Capabilities.Drop != nil {
 			drop = toCapabilities(sc.Capabilities.Drop)
@@ -668,12 +672,19 @@ func containerSecurityContext(sc *SecurityContext, stepPrivileged bool) *v1.Secu
 		add = toCapabilities(sc.Capabilities.Add)
 	}
 
-	securityContext := &v1.SecurityContext{
-		AllowPrivilegeEscalation: newBool(false),
-		Capabilities: &v1.Capabilities{
+	if !restricted && drop == nil && add == nil {
+		return nil
+	}
+
+	securityContext := &v1.SecurityContext{}
+	if restricted {
+		securityContext.AllowPrivilegeEscalation = newBool(false)
+	}
+	if drop != nil || add != nil {
+		securityContext.Capabilities = &v1.Capabilities{
 			Add:  add,
 			Drop: drop,
-		},
+		}
 	}
 	log.Trace().Msgf("container security context that will be used: %v", securityContext)
 	return securityContext

@@ -129,6 +129,18 @@ If steps run as a non-root user, set `securityContext.fsGroup` (globally or per 
 
 ---
 
+### BACKEND_K8S_SECCTX_PROFILE
+
+- Name: `CROW_BACKEND_K8S_SECCTX_PROFILE`
+- Description: Container security context defaults for non-privileged steps.
+  `restricted` drops all capabilities and disallows privilege escalation.
+  `baseline` keeps the container runtime's default capabilities, which images that run as root and need e.g. `chown` or `setuid` require.
+  See [Pod Security defaults](/dev/configuration/server/#pod-security-defaults).
+- Default: `restricted`
+- Values: `restricted`, `baseline`
+
+---
+
 ### BACKEND_K8S_PULL_SECRET_NAMES
 
 - Name: `CROW_BACKEND_K8S_PULL_SECRET_NAMES`

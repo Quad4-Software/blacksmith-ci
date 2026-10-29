@@ -398,6 +398,17 @@ steps:
 Setting `capabilities.drop` explicitly replaces the default `["ALL"]` drop list.
 Steps marked `privileged: true` skip the restricted defaults entirely.
 
+Dropping all capabilities breaks step images that run as root and rely on the capabilities a container runtime grants by default, such as `CHOWN`, `DAC_OVERRIDE`, `SETUID` and `SETGID`.
+For example, `pacman` on Arch Linux fails with `failed to chown temporary download directory`.
+To keep the runtime defaults for all non-privileged steps, set the `baseline` profile on the agent:
+
+```yaml
+CROW_BACKEND_K8S_SECCTX_PROFILE=baseline
+```
+
+With `baseline`, Crow sets neither `capabilities.drop` nor `allowPrivilegeEscalation`, so step pods satisfy the Pod Security Standards `baseline` profile but not `restricted`.
+The `RuntimeDefault` seccomp profile still applies, and per-step `capabilities.add` and `capabilities.drop` are still honored.
+
 ### Local
 
 :::danger
