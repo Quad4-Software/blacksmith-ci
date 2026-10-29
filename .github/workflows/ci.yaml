@@ -36,7 +36,7 @@ jobs:
           cache: false
 
       - name: build
-        run: CGO_ENABLED=0 go build ./cmd/agent ./cmd/cli
+        run: CGO_ENABLED=0 go build -tags 'containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper' ./cmd/agent ./cmd/cli
 
   server:
     name: image / server
